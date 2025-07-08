@@ -429,7 +429,6 @@
 </div>
 
 
-
         
 
 
@@ -535,7 +534,14 @@
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
 <script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
-
+<% if (theme.mermaid.enable) { %>
+  <script type="text/javascript" src='https://unpkg.com/mermaid@11.8.0/dist/mermaid.min.js'></script>
+  <script>
+    if (window.mermaid) {
+      mermaid.initialize({"theme":"neutral"});
+    }
+  </script>
+<% } %>
 
 
   

@@ -285,7 +285,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/06/25/Unity%E5%8D%8F%E7%A8%8B%EF%BC%88%E4%B8%80%EF%BC%89%E6%A6%82%E5%BF%B5/">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/06/25/Unity%E5%8D%8F%E7%A8%8B%E4%B8%80%20%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Lenzo">
@@ -304,7 +304,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2025/06/25/Unity%E5%8D%8F%E7%A8%8B%EF%BC%88%E4%B8%80%EF%BC%89%E6%A6%82%E5%BF%B5/" itemprop="url">Unity协程 (一) 概念</a></h1>
+                <a class="post-title-link" href="/2025/06/25/Unity%E5%8D%8F%E7%A8%8B%E4%B8%80%20%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B/" itemprop="url">Unity协程一 进程、线程与协程</a></h1>
         
 
         <div class="post-meta">
@@ -378,48 +378,44 @@
       
         
           
-            <h1 id="协程、线程与进程"><a href="#协程、线程与进程" class="headerlink" title="协程、线程与进程"></a>协程、线程与进程</h1><h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><h3 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h3><p>迄今为止，没有一个关于进程的统一明确的定义，不过许多的权威人士都各自从不同的角度对进程进行了定义，如下：</p>
-<ol>
-<li>行为的一个规则称为程序，程序在处理机上执行时所发生的活动称为进程（Dijkstra）​。</li>
-<li>进程是可以和别的计算并发执行的计算（Madnick and Donowan）​。</li>
-<li>进程是一个程序及其数据在处理机上顺序执行时所发生的活动（A.C.Shaw）​。</li>
-<li>进程是程序在一个数据集合上的运行过程，是系统进行资源分配和调度的一个独立单位（Peter Denning）​。</li>
-</ol>
-<p>总结下来，可以说，<strong>进程是具有独立功能的可并发执行的程序在一个数据集合上的运行过程，是系统进行资源分配和调度的独立单位。</strong></p>
-<p>进程具有以下5个特征：</p>
-<ol>
-<li>动态性。进程既然是进程实体的执行过程，因此，动态性是进程最基本的特性。动态性还表现为：​“它由创建而产生，由调度而执行，因得不到资源而暂停执行，以及由撤销而消亡”​。可见，进程有一定的生命期。而程序只是一组有序指令的集合，并存放在某种介质上，本身并无运动的含义。因此，程序是个静态体。但是，进程离开了程序也就失去了存在的意义，进程是执行程序的动态过程，而程序是进程运行的静态文本。</li>
-<li>并发性。并发性是指多个进程实体同存于内存中，能在一段时间内同时运行。并发性是进程的重要特征，同时也成为操作系统的重要特征。引入进程的目的也正是为了使其程序的执行能和其他程序的执行并发执行，而程序是不能并发执行的。</li>
-<li>独立性。独立性是指进程实体是一个能独立运行的基本单位，同时也是系统中独立获得资源和独立调度的基本单位。凡未建立进程的程序都不能作为一个独立的单位参加运行。</li>
-<li>异步性。异步性是指进程按各自独立的、不可预知的速度向前推进；或者说，进程按异步方式运行。这一特征将导致程序执行的不可再现性。因此，在操作系统中必须采取某种措施来保证各程序之间能协调运行。</li>
-<li>结构特征。从结构上看，进程实体是由程序段、数据段及进程控制块3部分组成，有人把这3部分统称为“进程映像”​。</li>
-</ol>
-<h3 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h3><p>在引入线程的操作系统中，线程是进程的一个实体，是被系统独立调度和分派的基本单位。线程自己基本上不拥有系统资源，只拥有一点在运行中必不可少的资源（如程序计数器、一组寄存器和栈）​，但它可与同属一个进程的其他线程共享进程所拥有的全部资源。一个线程可以创建和撤销另一个线程；同一进程中的多个线程之间可以并发执行。</p>
-<p>线程具有以下属性：</p>
-<ol>
-<li>每个线程有一个唯一的标识符和一张线程描述表，线程描述表记录了线程执行的寄存器和栈等现场状态。</li>
-<li>不同的线程可以执行相同的程序，即同一个服务程序被不同用户调用时操作系统为它们创建成不同的线程。</li>
-<li>同一进程中的各个线程共享该进程的内存地址空间。</li>
-<li>线程是处理机的独立调度单位，多个线程是可以并发执行的。在单处理机的计算机系统中，各线程可交替地占用处理机。在多处理机的计算机系统中，各线程可同时占用不同的处理机，若各个处理机同时为一个进程内的各线程服务则可缩短进程的处理时间。</li>
-<li>一个线程被创建后便开始了它的生命周期，直至终止，线程在生命周期内会经历阻塞状态、就绪状态和执行状态等各种状态变化。</li>
-</ol>
-<h3 id="协程"><a href="#协程" class="headerlink" title="协程"></a>协程</h3><p>Wiki对协程的定义是，协程是一种程序组件，是由子例程（过程、函数、例程、方法、子程序）的概念泛化而来的，子例程只有一个入口点且只返回一次，而协程允许多个入口点，可以在指定位置挂起和恢复执行。<br>简单的说，协程是一种<strong>用户态的轻量级线程</strong>，由用户自行调度，不依赖操作系统内核，其本质上是一个可以在函数之间主动挂起和恢复的控制流机制，一种异步编程技术。协程具有以下特点：</p>
-<ol>
-<li>轻量级： 一个线程可以承载成千上万个协程，极大提高并发能力。</li>
-<li>非抢占式调度： 协程由用户手动调度，而不是由操作系统决定。</li>
-<li>适合 IO 密集型： 适用于网络请求、爬虫、异步 IO 等任务。</li>
-<li>切换效率高： 协程切换只需保存少量寄存器信息，速度远快于线程。</li>
-</ol>
+            <h1 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h1><p>对于应用层而言，进程、线程与协程都是为了实现并发和并行的技术手段。</p>
+<h1 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h1><h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><p><strong>进程是具有独立功能的可并发执行的程序在一个数据集合上的运行过程，是系统进行资源分配和调度的独立单位。</strong> 可以把它理解为一个 “正在运行的程序”。当一个程序（如浏览器、Word）启动时，操作系统就会为它创建一个进程。</p>
+<h2 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h2><p>在多道操作系统中，程序的执行属于并发执行，如果没有进程对每个程序进行封装，他们将失去其封闭性，并具有间断性、运行结果不可再现的特性，为能使程序并发执行，并且可以对并发执行的程序加一描述和控制，就需要引入进程这个概念。</p>
+<h2 id="关键特性"><a href="#关键特性" class="headerlink" title="关键特性"></a>关键特性</h2><ul>
+<li>资源独立： 每个进程都拥有自己独立的内存空间（代码段、数据段、堆、栈）、文件描述符、环境变量、安全属性等。一个进程崩溃通常不会直接影响其他进程（稳定性好）。</li>
+<li>重量级： 创建、销毁、切换进程需要操作系统内核进行复杂的操作（分配&#x2F;回收内存、寄存器保存&#x2F;恢复等），开销较大。</li>
+<li>通信开销大： 进程间通信需要特定的机制，因为内存不共享。常见方式有：管道、消息队列、共享内存（需同步）、套接字等。这些机制通常比线程间通信慢。</li>
+<li>隔离性强： 由于内存独立，一个进程无法直接访问另一个进程的内存，安全性高。</li>
+</ul>
+<h1 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h1><h2 id="定义-1"><a href="#定义-1" class="headerlink" title="定义"></a>定义</h2><p><strong>线程是操作系统能够进行运算调度的最小单位，它是进程内的一个执行流（子任务）。一个进程可以包含多个线程。</strong></p>
+<h2 id="目的-1"><a href="#目的-1" class="headerlink" title="目的"></a>目的</h2><p>充分利用多核CPU进行并行计算（一个进程的多个线程可以在多个核上同时运行），提高程序的响应性（例如将游戏线程分为渲染线程、物理线程、业务逻辑线程来并行加速游戏），更高效地共享进程内资源。</p>
+<h2 id="关键特性-1"><a href="#关键特性-1" class="headerlink" title="关键特性"></a>关键特性</h2><ul>
+<li>共享资源： 同一个进程内的所有线程共享该进程的内存空间（堆、全局变量）和系统资源（如打开的文件）。每个线程有自己的栈和寄存器状态（用于保存执行上下文）。</li>
+<li>轻量级： 创建、销毁、切换线程的开销比进程小很多，因为不需要创建新的地址空间或资源。</li>
+<li>通信开销小： 线程间可以直接读写共享的内存变量进行通信，速度非常快。</li>
+<li>同步复杂： 正因为共享内存，多个线程同时操作共享数据会导致竞争条件。必须使用同步机制（如互斥锁、信号量、条件变量）来保证数据一致性，编程模型更复杂，容易出错（死锁）。</li>
+<li>隔离性弱： 一个线程崩溃（如访问非法地址）通常会导致其所属的整个进程崩溃，因为共享内存空间（部分语言会自带保护机制来避免这种雪崩情况，比如Java）。</li>
+</ul>
+<h1 id="协程"><a href="#协程" class="headerlink" title="协程"></a>协程</h1><h2 id="定义-2"><a href="#定义-2" class="headerlink" title="定义"></a>定义</h2><p><strong>协程是一种用户态的轻量级线程，其调度完全由用户程序控制（而非操作系统内核）。</strong>协程运行在线程之上，一个线程内可以运行多个协程。其本质上是一个可以在函数之间主动挂起和恢复的控制流机制，一种异步编程技术。</p>
+<h2 id="目的-2"><a href="#目的-2" class="headerlink" title="目的"></a>目的</h2><p>用极低的资源开销实现超高并发，尤其适合 I&#x2F;O 密集型应用（大部分时间在等待网络、磁盘等操作完成），简化异步编程模型。</p>
+<h2 id="关键特性-2"><a href="#关键特性-2" class="headerlink" title="关键特性"></a>关键特性</h2><ul>
+<li>极轻量级： 创建、销毁、切换协程的开销极小（通常只是保存&#x2F;恢复少量寄存器，不涉及内核态切换），可以轻松创建成千上万个协程。</li>
+<li>用户态调度： 协程的调度（决定哪个协程运行）由程序员编写的代码（或协程库）在用户空间完成，不依赖操作系统的线程调度器。通常采用协作式调度：一个协程主动让出（yield）执行权，另一个协程才能开始执行。这避免了线程抢占式调度带来的锁竞争开销。</li>
+<li>无同步问题？： 在单线程内运行的多个协程，由于是协作式调度（非抢占），在让出点之间的代码执行是原子的，理论上操作共享数据不需要加锁。但跨线程的协程（不同线程上的协程访问同一数据）或协程与线程混合访问共享数据时，仍然需要同步机制。</li>
+<li>栈空间小： 协程通常有自己独立的栈，但栈空间非常小（可预先分配），且按需增长，内存占用极小。</li>
+<li>高并发： 极低的创建&#x2F;切换开销和内存占用，使得协程非常适合于需要超高并发（如数万、数十万连接）的 I&#x2F;O 密集型场景（网络服务器、爬虫等）。</li>
+<li>编程模型： 通常使用 async&#x2F;await 或显式的 yield 关键字来编写异步代码，逻辑上更接近同步代码，避免了“回调地狱”。</li>
+</ul>
+<h1 id="类比"><a href="#类比" class="headerlink" title="类比"></a>类比</h1><p>想象一家大型流水线集团，集团旗下有许多工厂（进程），线程是工厂里的生产线，协程是生产线上能同时照看多台机器的老师傅。工厂间协作成本高（进程通信），生产线要小心协调（线程同步），老师傅自己就能把协调管理的多台机器（协程调度）。</p>
+<h1 id="关系图"><a href="#关系图" class="headerlink" title="关系图"></a>关系图</h1><div class="mxgraph" style="max-width:100%;border:1px solid transparent;" data-mxgraph="{&quot;highlight&quot;:&quot;#0000ff&quot;,&quot;nav&quot;:true,&quot;resize&quot;:true,&quot;dark-mode&quot;:&quot;light&quot;,&quot;toolbar&quot;:&quot;zoom layers tags lightbox&quot;,&quot;edit&quot;:&quot;_blank&quot;,&quot;xml&quot;:&quot;&lt;mxfile host=\&quot;Electron\&quot; agent=\&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36\&quot; version=\&quot;27.0.9\&quot;&gt;\n  &lt;diagram id=\&quot;y6z9hWFhSs4X-zh5PFfg\&quot; name=\&quot;Page-1\&quot;&gt;\n    &lt;mxGraphModel dx=\&quot;1072\&quot; dy=\&quot;630\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;850\&quot; pageHeight=\&quot;1100\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;2\&quot; value=\&quot;操作系统\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;align=center;gradientColor=none;fillColor=default;strokeColor=default;verticalAlign=top;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;190\&quot; y=\&quot;200\&quot; width=\&quot;520\&quot; height=\&quot;290\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;3\&quot; value=\&quot;进程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;210\&quot; y=\&quot;230\&quot; width=\&quot;340\&quot; height=\&quot;240\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;4\&quot; value=\&quot;进程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;570\&quot; y=\&quot;230\&quot; width=\&quot;50\&quot; height=\&quot;240\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;5\&quot; value=\&quot;.......\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;640\&quot; y=\&quot;230\&quot; width=\&quot;50\&quot; height=\&quot;240\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;6\&quot; value=\&quot;线程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;230\&quot; y=\&quot;260\&quot; width=\&quot;190\&quot; height=\&quot;140\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;7\&quot; value=\&quot;......\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;490\&quot; y=\&quot;260\&quot; width=\&quot;40\&quot; height=\&quot;140\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;8\&quot; value=\&quot;线程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;435\&quot; y=\&quot;260\&quot; width=\&quot;40\&quot; height=\&quot;140\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;9\&quot; value=\&quot;协程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;250\&quot; y=\&quot;290\&quot; width=\&quot;40\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;11\&quot; value=\&quot;协程\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;305\&quot; y=\&quot;290\&quot; width=\&quot;40\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;12\&quot; value=\&quot;......\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;360\&quot; y=\&quot;290\&quot; width=\&quot;40\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;WJhhEcHRk8HBll8wShTH-12\&quot; value=\&quot;&amp;lt;pre style=&amp;quot;overflow: auto; padding: 9.144px 13.716px; text-wrap-mode: wrap; word-break: break-all; font-size: 12.573px; text-align: start; margin-top: 0px !important; margin-bottom: 0px !important;&amp;quot;&amp;gt;&amp;lt;font face=&amp;quot;Helvetica&amp;quot;&amp;gt;共享内存、资源&amp;lt;/font&amp;gt;&amp;lt;/pre&amp;gt;\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;230\&quot; y=\&quot;420\&quot; width=\&quot;300\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;WJhhEcHRk8HBll8wShTH-13\&quot; value=\&quot;&amp;lt;div style=&amp;quot;overflow: auto; padding: 9.144px 13.716px; text-wrap-mode: wrap; word-break: break-all; font-size: 12.573px; text-align: start; margin-top: 0px !important; margin-bottom: 0px !important;&amp;quot;&amp;gt;栈、寄存器&amp;lt;/div&amp;gt;\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;250\&quot; y=\&quot;350\&quot; width=\&quot;150\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &lt;/diagram&gt;\n&lt;/mxfile&gt;\n&quot;}">
+    </div>
+    <script type="text/javascript" src="https://viewer.diagrams.net/js/viewer-static.min.js"></script>
+
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ol>
 <li>《操作系统（第四版）》刘振鹏，张明，王煜</li>
-<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000039378412">进程、线程与协程傻傻分不清？一文带你吃透！</a><!-- 
-对于应用而言，进程的主要区别体现在资源分配、调度和执行、独立性和切换的开销上。
-：进程和线程由操作系统内核进行调度，而协程的调度由用户空间的程序逻辑控制。
-：进程拥有完整的资源分配，线程共享进程资源，协程则在同一线程中共享资源。</li>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000039378412">进程、线程与协程傻傻分不清？一文带你吃透！</a></li>
 </ol>
-<p>：<br>进程间相互独立，线程间共享进程资源，协程则更加灵活，可以根据需要挂起和恢复。</p>
-<p>系统开销 –&gt;</p>
---></li></ol>
+
           
         
       
@@ -740,7 +736,6 @@
 
   
 </div>
-
 
 
         
