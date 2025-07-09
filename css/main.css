@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #63ffbd;
+  background: #1c7ee7;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2754,7 +2754,7 @@ header.header {
   display: inline-block;
 }
 body {
-  background: url("https://gitee.com/lenzo15/LenzoPictureRep/blob/master/background.jpg");
+  background: url("/images/background.jpg");
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;
