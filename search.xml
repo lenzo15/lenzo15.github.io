@@ -41,10 +41,11 @@
       </tags>
   </entry>
   <entry>
-    <title>Unity协程一 进程、线程与协程</title>
-    <url>/2025/06/25/Unity%E5%8D%8F%E7%A8%8B%E4%B8%80%20%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B/</url>
+    <title>Unity协程(一) 进程、线程与协程</title>
+    <url>/2025/06/25/Unity%E5%8D%8F%E7%A8%8B(%E4%B8%80)%20%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B/</url>
     <content><![CDATA[<h2 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h2><p>对于应用层而言，进程、线程与协程都是为了实现并发和并行的技术手段。</p>
 <span id="more"></span>
+
 <h2 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h2><h3 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h3><p><strong>进程是具有独立功能的可并发执行的程序在一个数据集合上的运行过程，是系统进行资源分配和调度的独立单位。</strong> 可以把它理解为一个 “正在运行的程序”。当一个程序（如浏览器、Word）启动时，操作系统就会为它创建一个进程。</p>
 <h3 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h3><p>在多道操作系统中，程序的执行属于并发执行，如果没有进程对每个程序进行封装，他们将失去其封闭性，并具有间断性、运行结果不可再现的特性，为能使程序并发执行，并且可以对并发执行的程序加一描述和控制，就需要引入进程这个概念。</p>
 <h3 id="关键特性"><a href="#关键特性" class="headerlink" title="关键特性"></a>关键特性</h3><ul>
