@@ -34,7 +34,7 @@
         <mxCell id="12" value="......" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
           <mxGeometry x="360" y="290" width="40" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="WJhhEcHRk8HBll8wShTH-12" value="&lt;pre style=&quot;overflow: auto; padding: 9.144px 13.716px; text-wrap-mode: wrap; word-break: break-all; font-size: 12.573px; text-align: start; margin-top: 0px !important; margin-bottom: 0px !important;&quot;&gt;&lt;font face=&quot;Helvetica&quot;&gt;共享内存、资源&lt;/font&gt;&lt;/pre&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="WJhhEcHRk8HBll8wShTH-12" value="共享内存、资源" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="230" y="420" width="300" height="30" as="geometry" />
         </mxCell>
         <mxCell id="WJhhEcHRk8HBll8wShTH-13" value="&lt;div style=&quot;overflow: auto; padding: 9.144px 13.716px; text-wrap-mode: wrap; word-break: break-all; font-size: 12.573px; text-align: start; margin-top: 0px !important; margin-bottom: 0px !important;&quot;&gt;栈、寄存器&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;" vertex="1" parent="1">
