@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #7a6312;
+  background: #90fff5;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2754,7 +2754,7 @@ header.header {
   display: inline-block;
 }
 body {
-  background: url("https://i0.hdslb.com/bfs/new_dyn/ae27f87606591cb8f09c477bc42464353127575.jpg");
+  background: url("/images/background.jpg");
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;
@@ -2765,25 +2765,21 @@ body {
 .main-inner > .tabs-comment,
 .main-inner > .comments,
 .main-inner > .pagination {
-  background: rgba(245,245,245,0.42);
+  background: rgba(245,245,245,0.859);
 }
-body {
-  color: #000;
-}
-.posts-expand .post-title-link {
-  color: #000;
-}
-.posts-expand .post-meta-container {
-  color: #800;
+.post-block {
+  background-color: #fff;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 30px 30px 30px 30px;
+  box-shadow: 8px 7px 2px 0 rgba(0,0,0,0.12), 7px 4px 1px -2px rgba(0,0,0,0.06), 0 1px 5px 0 rgba(0,0,0,0.12);
 }
 .sidebar {
   opacity: 0.7;
 }
-.header-inner {
-  background: rgba(255,255,255,0.7);
-}
 .popup {
-  opacity: 0.5;
+  opacity: 0.95;
 }
 .main-inner {
   background-color: rgba(255,255,255,0);
