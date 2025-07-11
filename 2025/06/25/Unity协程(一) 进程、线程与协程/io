@@ -1,0 +1,46 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36" version="27.0.9">
+  <diagram id="y6z9hWFhSs4X-zh5PFfg" name="Page-1">
+    <mxGraphModel dx="1072" dy="630" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="操作系统" style="rounded=1;whiteSpace=wrap;html=1;align=center;gradientColor=none;fillColor=default;strokeColor=default;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="190" y="200" width="520" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="进程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="210" y="230" width="340" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="进程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="570" y="230" width="50" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="......." style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
+          <mxGeometry x="640" y="230" width="50" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="线程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="230" y="260" width="190" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="......" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
+          <mxGeometry x="490" y="260" width="40" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="线程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="435" y="260" width="40" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="协程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
+          <mxGeometry x="250" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="协程" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
+          <mxGeometry x="305" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="......" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=default;fontFamily=Helvetica;fillColor=default;gradientColor=none;" parent="1" vertex="1">
+          <mxGeometry x="360" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="WJhhEcHRk8HBll8wShTH-12" value="共享内存、资源" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="420" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="WJhhEcHRk8HBll8wShTH-13" value="&lt;div style=&quot;overflow: auto; padding: 9.144px 13.716px; text-wrap-mode: wrap; word-break: break-all; font-size: 12.573px; text-align: start; margin-top: 0px !important; margin-bottom: 0px !important;&quot;&gt;栈、寄存器&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="250" y="350" width="150" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
