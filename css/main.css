@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #7a6071;
+  background: #ddb9c4;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2754,7 +2754,6 @@ header.header {
   display: inline-block;
 }
 body {
-  background: url("https://i0.hdslb.com/bfs/new_dyn/ae27f87606591cb8f09c477bc42464353127575.jpg");
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;
