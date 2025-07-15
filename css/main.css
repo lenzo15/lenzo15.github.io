@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #95ff3b;
+  background: #ffb5ff;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2758,6 +2758,7 @@ body {
   background-attachment: fixed;
   background-size: cover;
   background-position: center;
+  background-size: 100% 100%;
 }
 @media only screen and (max-width: 1000px) {
   body:before {
