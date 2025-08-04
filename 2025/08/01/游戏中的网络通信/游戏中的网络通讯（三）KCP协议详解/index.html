@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta name="referrer" content="no-referrer"/>
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="referrer" content="no-referrer" />
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha256-dABdfBfUoC8vJUBOwGVdm8L9qlMWaHTIfXt+7GnZCIo=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/6.0.5/fancybox/fancybox.css" integrity="sha256-uTcjoMD6rPt4OyV3Rs02Slxl0BJGMNVKAm/1eYPt2go=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/blue/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous" defer></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"lenzo15.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.23.2","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="介绍 KCP - A Fast and Reliable ARQ Protocol KCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何">
+<meta property="og:type" content="article">
+<meta property="og:title" content="游戏中的网络通讯（三）KCP协议详解">
+<meta property="og:url" content="https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Lenzo&#39;s Blog">
+<meta property="og:description" content="介绍 KCP - A Fast and Reliable ARQ Protocol KCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://github.com/skywind3000/kcp/raw/master/images/spatialos-50.png">
+<meta property="og:image" content="https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/kcp_5.svg">
+<meta property="article:published_time" content="2025-08-01T07:37:16.000Z">
+<meta property="article:modified_time" content="2025-08-04T09:12:11.316Z">
+<meta property="article:author" content="Lenzo">
+<meta property="article:tag" content="基础知识">
+<meta property="article:tag" content="UDP&#x2F;TCP">
+<meta property="article:tag" content="网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://github.com/skywind3000/kcp/raw/master/images/spatialos-50.png">
+
+
+<link rel="canonical" href="https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/","path":"2025/08/01/游戏中的网络通信/游戏中的网络通讯（三）KCP协议详解/","title":"游戏中的网络通讯（三）KCP协议详解"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>游戏中的网络通讯（三）KCP协议详解 | Lenzo's Blog</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/6.0.5/fancybox/fancybox.umd.js" integrity="sha256-UiSieVaV/DXce2LW7QH+o77w+AIoAvSCPBkezriZ2DQ=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/mermaid.min.js","integrity":"sha256-4+IKDqhZ/sXjc8Wtl2/MsxI4e0s1KpEVdbEP7V/Lz8U="}}</script>
+  <script src="/js/third-party/tags/mermaid.js" defer></script>
+
+  <script class="next-config" data-name="wavedrom" type="application/json">{"enable":true,"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.5.0/wavedrom.min.js","integrity":"sha256-INLAoJc6quTNfiMWkGZniYO2cxE8mHpddnLow1m6RFs="}}</script>
+  <script class="next-config" data-name="wavedrom_skin" type="application/json">{"enable":true,"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.5.0/skins/default.js","integrity":"sha256-fduc/Zszk5ezWws2uInY/ALWVmIrmV6VTgXbsYSReFI="}}</script>
+  <script src="/js/third-party/tags/wavedrom.js" defer></script>
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+  <script src="/js/third-party/pace.js" defer></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" integrity="sha256-UF1fgpAiu3tPJN/uCqEUHNe7pnr+QR0SQDNfgglgtcM=" crossorigin="anonymous">
+  <script class="next-config" data-name="katex" type="application/json">{"copy_tex_js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/copy-tex.min.js","integrity":"sha256-Us54+rSGDSTvIhKKUs4kygE2ipA0RXpWWh0/zLqw3bs="}}</script>
+  <script src="/js/third-party/math/katex.js" defer></script>
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion" >
+  <div class="headband"></div>
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Lenzo's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text"> 介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%B9%E6%80%A7"><span class="nav-number">2.</span> <span class="nav-text"> 特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kcp%E9%A6%96%E9%83%A8%E6%A0%BC%E5%BC%8F"><span class="nav-number">3.</span> <span class="nav-text"> KCP首部格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text"> 流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%94%E7%94%A8"><span class="nav-number">5.</span> <span class="nav-text"> 应用</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Lenzo"
+      src="/images/icon.png">
+  <p class="site-author-name" itemprop="name">Lenzo</p>
+  <div class="site-description" itemprop="description">Viva los artistas y su amor!</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/icon.png">
+      <meta itemprop="name" content="Lenzo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Lenzo's Blog">
+      <meta itemprop="description" content="Viva los artistas y su amor!">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="游戏中的网络通讯（三）KCP协议详解 | Lenzo's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          游戏中的网络通讯（三）KCP协议详解
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-01 15:37:16" itemprop="dateCreated datePublished" datetime="2025-08-01T15:37:16+08:00">2025-08-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-04 17:12:11" itemprop="dateModified" datetime="2025-08-04T17:12:11+08:00">2025-08-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/" itemprop="url" rel="index"><span itemprop="name">网络通信</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="介绍"><a class="markdownIt-Anchor" href="#介绍"></a> 介绍</h2>
+<p><a target="_blank" rel="noopener" href="https://github.com/skywind3000/kcp">KCP - A Fast and Reliable ARQ Protocol</a><br>
+KCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系统调用。</p>
+<span id="more"></span>
+<p><a target="_blank" rel="noopener" href="https://github.com/libinzhangyuan/reliable_udp_bench_mark/blob/master/bench_mark.md">reliable_udp_bench_mark</a> 比较了多个基于UDP的可靠传输框架，并给出了下面的结论：<br>
+并给出结论如下：</p>
+<ul>
+<li>The kcp is the first choice for realtime pvp game.</li>
+<li>The lag is less than 1 second when network lag happen. 3 times better than enet when lag happen.</li>
+<li>The enet is a good choice if your game allow 2 second lag.</li>
+<li>UDT is a bad idea. It always sink into badly situation of more than serval seconds lag. And the recovery is not expected.</li>
+</ul>
+<p>大型多人游戏服务端引擎 SpatialOS 在集成 KCP 协议后做了同 TCP/RakNet 的评测：<br>
+<img src="/images/tail-spin.svg" data-original="https://github.com/skywind3000/kcp/raw/master/images/spatialos-50.png" alt><br>
+同时，《王者荣耀》、《原神》等用户规模庞大的项目也都有使用KCP协议。</p>
+<h2 id="特性"><a class="markdownIt-Anchor" href="#特性"></a> 特性</h2>
+<p>在该仓库的ReadMe中介绍的技术特性包括：</p>
+<ul>
+<li>RTO翻倍vs不翻倍：<br>
+TCP超时计算是RTOx2，这样连续丢三次包就变成RTOx8了，十分恐怖，而KCP启动快速模式后不x2，只是x1.5（实验证明1.5这个值相对比较好），提高了传输速度。</li>
+<li>选择性重传 vs 全部重传：<br>
+TCP丢包时会全部重传从丢的那个包开始以后的数据，KCP是选择性重传，只重传真正丢失的数据包。</li>
+<li>快速重传：<br>
+发送端发送了1，2，3，4，5几个包，然后收到远端的ACK: 1，3，4，5，当收到ACK3时，KCP知道2被跳过1次，收到ACK4时，知道2被跳过了2次，此时可以认为2号丢失，不用等超时，直接重传2号包，大大改善了丢包时的传输速度。</li>
+<li>延迟ACK vs 非延迟ACK：<br>
+TCP为了充分利用带宽，延迟发送ACK（NODELAY都没用），这样超时计算会算出较大 RTT时间，延长了丢包时的判断过程。KCP的ACK是否延迟发送可以调节。</li>
+<li>UNA vs ACK+UNA：<br>
+ARQ模型响应有两种，UNA（此编号前所有包已收到，如TCP）和ACK（该编号包已收到），光用UNA将导致全部重传，光用ACK则丢失成本太高，以往协议都是二选其一，而 KCP协议中，除去单独的 ACK包外，所有包都有UNA信息。</li>
+<li>非退让流控：<br>
+KCP正常模式同TCP一样使用公平退让法则，即发送窗口大小由：发送缓存大小、接收端剩余接收缓存大小、丢包退让及慢启动这四要素决定。但传送及时性要求很高的小数据时，可选择通过配置跳过后两步，仅用前两项来控制发送频率。以牺牲部分公平性及带宽利用率之代价，换取了开着BT都能流畅传输的效果。</li>
+</ul>
+<p>事实上，通过前面<a href="/2025/07/31/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1%EF%BC%88%E4%BA%8C%EF%BC%89TCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/" title="游戏中的网络通信（二）TCP协议详解">关于TCP的博客</a>的介绍我们也发现了，TCP同样可以实现选择重传、快重传。而且在快重传规则下，额外的选择重传功能意义不大。从源码看，KCP也确实没有额外实现一套选择重传的功能，README里应该是把快重传功能作为一个选择重传的实现写上去了。<br>
+通过对比源码来看，KCP主要实现了下面的功能：</p>
+<ul>
+<li>让TCP的<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mi>a</mi><mi>r</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">Karn</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.07153em;">K</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord mathnormal">n</span></span></span></span>算法改进部分，超时计算从TCP的RTOx2变为RTOx1.5。</li>
+<li>TCP的快重传指发送方只要一连收到三个重复确认就应当立即重传对方尚未收到的报文段，而不必继续等待为该报文段设置的重传计时器到期。在KCP中将重传需要收到的重复确认次数变为可配置的，一般被配置成2次。</li>
+<li>KCP将丢包退让和慢启动变为可配置，出现丢包后不会进行门限值ssthresh的减半和慢启动。</li>
+<li>这一点是KCP最核心的改动，KCP协议首部中，同时包含了ACK（该编号包已收到）和UNA（此编号前所有包已收到，相当于发送窗口的左指针）信息。这使得快重传和选择重传的效率变得更高。</li>
+</ul>
+<h2 id="kcp首部格式"><a class="markdownIt-Anchor" href="#kcp首部格式"></a> KCP首部格式</h2>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">0               4   5   6       8 (BYTE)</span><br><span class="line">+---------------+---+---+-------+</span><br><span class="line">|     conv      |cmd|frg|  wnd  |</span><br><span class="line">+---------------+---+---+-------+   8</span><br><span class="line">|     ts        |     sn        |</span><br><span class="line">+---------------+---------------+  16</span><br><span class="line">|     una       |     len       |</span><br><span class="line">+---------------+---------------+  24</span><br><span class="line">|                               |</span><br><span class="line">|        DATA (optional)        |</span><br><span class="line">|                               |</span><br><span class="line">+-------------------------------+</span><br></pre></td></tr></table></figure>
+<ul>
+<li>conv 4 字节: 连接标识符，用于识别一个特定的会话。</li>
+<li>cmd 1 字节: Command。</li>
+<li>frg 1 字节: 分片数量. 表示随后还有多少个报文属于同一个包。</li>
+<li>wnd 2 字节: 发送方剩余接收窗口的大小。</li>
+<li>ts 4 字节: 时间戳。</li>
+<li>sn 4 字节: 报文编号。</li>
+<li>una 4 字节: 发送方的接收缓冲区中最小还未收到的报文段的编号. 也就是说, 编号比它小的报文段都已全部接收。</li>
+<li>len 4 字节: 数据段长度。</li>
+<li>data: 数据段. 只有数据报文会有这个字段。</li>
+</ul>
+<h2 id="流程"><a class="markdownIt-Anchor" href="#流程"></a> 流程</h2>
+<p>KCP 的整个发送，接收与重传的流程大体如下:</p>
+<ul>
+<li>调用 ikcp_send 发送数据，创建报文段实例，加入 snd_queue 中。</li>
+<li>ikcp_update 会在合适的时刻调用 ikcp_flush。</li>
+<li>ikcp_flush 会做:
+<ul>
+<li>发送 ACK 列表中所有的 ACK。</li>
+<li>检查是否需要发送窗口探测和通知报文，如果需要就发送相应的报文。</li>
+<li>根据发送窗口大小，将适量的报文段从 snd_queue 移入到 snd_buf 中。</li>
+<li>将 snd_buf 中满足条件的报文段都发送出去. 这里的条件有。
+<ul>
+<li>新加入 snd_buf 中，从未发送过的报文直接发送出去。</li>
+<li>发送过的，但是在 RTO 内未收到 ACK 的报文，需要重传。</li>
+<li>发送过的，但是 ACK 失序若干次的报文，需要执行快速重传。</li>
+</ul>
+</li>
+<li>根据丢包情况计算 ssthresh 和 cwnd。</li>
+</ul>
+</li>
+<li>这样，刚才调用 ikcp_send 传入的数据就在 ikcp_flush 中被发送出去了。</li>
+<li>报文到达对端。</li>
+<li>ikcp_input 会被调用，解析收到的数据:
+<ul>
+<li>所有的报文都有 una 字段，根据 una 将相应的报文标记为已送达。</li>
+<li>如果是 ACK 报文，就将相应的报文标记为已送达。</li>
+<li>如果是数据报文，就将它放入 rcv_buf，然后将 rcv_buf 中顺序正确的报文移入 rcv_queue; 接着将相关信息插入 ACK 列表，在稍后的 ikcp_flush 调用中会发送相应的 ACK。</li>
+<li>如果是窗口探测报文，就标记 “需要发送窗口通知”. 在稍后的 ikcp_flush 调用中会发送窗口通知报文。</li>
+<li>包括窗口通知报文在内的所有报文都有 wnd 字段，据此更新 rmt_wnd。</li>
+<li>根据 ACK 失序情况决定快速重传。</li>
+<li>计算 cwnd。</li>
+</ul>
+</li>
+<li>调用 ikcp_recv 接收数据，从 rcv_queue 中读取数据。<br>
+之后 ACK 会返回给发送方，发送方在 ikcp_input 中解析到 ACK，将对应的报文标记为已送达，这就完成了一次发送. 如果发生了丢包，发送方最终收不到 ACK. 这会导致重传。</li>
+</ul>
+<p>下面举个简单的例子：</p>
+<img src="/images/tail-spin.svg" data-original="/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/kcp_5.svg" class title="kcp流程">
+<ol>
+<li>t1 时刻发送方发送 1 号报文，1 号报文放入发送缓冲区中，snd_una 指向 1，snd_nxt 指向 2。</li>
+<li>t2 至 t3 时刻发送方依次发送 2 至 3 号报文，snd_nxt 依次后移。</li>
+<li>1 号报文丢包。</li>
+<li>t4，t5 时刻接收方收到 3 号和 2 号报文，放入 rcv_buf 中; 随后回复 3 号和 2 号 ACK。此时由于 1 号报文缺失，rcv_nxt 始终指向 1。</li>
+<li>3 号 ACK 丢包。</li>
+<li>t7 时刻发送方收到 2 号 ACK，将 2 号报文标记为已送达。此时由于 3 号 ACK 丢包，3 号报文未标记为已送达。由于 1 号报文未确认送达，snd_una 亦指向 1。</li>
+<li>t8 时刻 1 号报文超时，重传。</li>
+<li>t9 时刻接收方收到 1 号报文，放入 rcv_buf 中; 这时 1，2，3 号报文顺序正确，rcv_nxt 右移到 4 号位置。接收方回复 1 号 ACK，同时带上 una = 4。</li>
+<li>t10 时刻发送方收到 1 号 ACK，将 1 号报文标记为已送达。同时 una 表明 1，2，3 号报文均已送达，因此也将 3 号报文标记为已送达。snd_una 移动到 4。</li>
+</ol>
+<h2 id="应用"><a class="markdownIt-Anchor" href="#应用"></a> 应用</h2>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br></pre></td><td class="code"><pre><span class="line">      </span><br><span class="line"><span class="comment">//=====================================================================</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// test.cpp - kcp 测试用例</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 说明：</span></span><br><span class="line"><span class="comment">// gcc test.cpp -o test -lstdc++</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//=====================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;test.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ikcp.c&quot;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模拟网络</span></span><br><span class="line">LatencySimulator *vnet;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模拟网络：模拟发送一个 udp包</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">udp_output</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *buf, <span class="type">int</span> len, ikcpcb *kcp, <span class="type">void</span> *user)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span> <span class="type">int</span> id; <span class="type">void</span> *ptr; &#125; parameter;</span><br><span class="line">	parameter.ptr = user;</span><br><span class="line">	vnet-&gt;send(parameter.id, buf, len);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 测试用例</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">test</span><span class="params">(<span class="type">int</span> mode)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 创建模拟网络：丢包率10%，Rtt 60ms~125ms</span></span><br><span class="line">	vnet = new LatencySimulator(<span class="number">10</span>, <span class="number">60</span>, <span class="number">125</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建两个端点的 kcp对象，第一个参数 conv是会话编号，同一个会话需要相同</span></span><br><span class="line">	<span class="comment">// 最后一个是 user参数，用来传递标识</span></span><br><span class="line">	ikcpcb *kcp1 = ikcp_create(<span class="number">0x11223344</span>, (<span class="type">void</span>*)<span class="number">0</span>);</span><br><span class="line">	ikcpcb *kcp2 = ikcp_create(<span class="number">0x11223344</span>, (<span class="type">void</span>*)<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置kcp的下层输出，这里为 udp_output，模拟udp网络输出函数</span></span><br><span class="line">	kcp1-&gt;output = udp_output;</span><br><span class="line">	kcp2-&gt;output = udp_output;</span><br><span class="line"></span><br><span class="line">	IUINT32 current = iclock();</span><br><span class="line">	IUINT32 slap = current + <span class="number">20</span>;</span><br><span class="line">	IUINT32 index = <span class="number">0</span>;</span><br><span class="line">	IUINT32 next = <span class="number">0</span>;</span><br><span class="line">	IINT64 sumrtt = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> count = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> maxrtt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 配置窗口大小：平均延迟200ms，每20ms发送一个包，</span></span><br><span class="line">	<span class="comment">// 而考虑到丢包重发，设置最大收发窗口为128</span></span><br><span class="line">	ikcp_wndsize(kcp1, <span class="number">128</span>, <span class="number">128</span>);</span><br><span class="line">	ikcp_wndsize(kcp2, <span class="number">128</span>, <span class="number">128</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 判断测试用例的模式</span></span><br><span class="line">	<span class="keyword">if</span> (mode == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// 默认模式</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (mode == <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="comment">// 普通模式，关闭流控等</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">	&#125;	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 启动快速模式</span></span><br><span class="line">		<span class="comment">// 第二个参数 nodelay-启用以后若干常规加速将启动</span></span><br><span class="line">		<span class="comment">// 第三个参数 interval为内部处理时钟，默认设置为 10ms</span></span><br><span class="line">		<span class="comment">// 第四个参数 resend为快速重传指标，设置为2</span></span><br><span class="line">		<span class="comment">// 第五个参数 为是否禁用常规流控，这里禁止</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">2</span>, <span class="number">10</span>, <span class="number">2</span>, <span class="number">1</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">2</span>, <span class="number">10</span>, <span class="number">2</span>, <span class="number">1</span>);</span><br><span class="line">		kcp1-&gt;rx_minrto = <span class="number">10</span>;</span><br><span class="line">		kcp1-&gt;fastresend = <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="type">char</span> buffer[<span class="number">2000</span>];</span><br><span class="line">	<span class="type">int</span> hr;</span><br><span class="line"></span><br><span class="line">	IUINT32 ts1 = iclock();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">		isleep(<span class="number">1</span>);</span><br><span class="line">		current = iclock();</span><br><span class="line">		ikcp_update(kcp1, iclock());</span><br><span class="line">		ikcp_update(kcp2, iclock());</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 每隔 20ms，kcp1发送数据</span></span><br><span class="line">		<span class="keyword">for</span> (; current &gt;= slap; slap += <span class="number">20</span>) &#123;</span><br><span class="line">			((IUINT32*)buffer)[<span class="number">0</span>] = index++;</span><br><span class="line">			((IUINT32*)buffer)[<span class="number">1</span>] = current;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 发送上层协议包</span></span><br><span class="line">			ikcp_send(kcp1, buffer, <span class="number">8</span>);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理虚拟网络：检测是否有udp包从p1-&gt;p2</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = vnet-&gt;recv(<span class="number">1</span>, buffer, <span class="number">2000</span>);</span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果 p2收到udp，则作为下层协议输入到kcp2</span></span><br><span class="line">			ikcp_input(kcp2, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理虚拟网络：检测是否有udp包从p2-&gt;p1</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = vnet-&gt;recv(<span class="number">0</span>, buffer, <span class="number">2000</span>);</span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果 p1收到udp，则作为下层协议输入到kcp1</span></span><br><span class="line">			ikcp_input(kcp1, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// kcp2接收到任何包都返回回去</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = ikcp_recv(kcp2, buffer, <span class="number">10</span>);</span><br><span class="line">			<span class="comment">// 没有收到包就退出</span></span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果收到包就回射</span></span><br><span class="line">			ikcp_send(kcp2, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// kcp1收到kcp2的回射数据</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = ikcp_recv(kcp1, buffer, <span class="number">10</span>);</span><br><span class="line">			<span class="comment">// 没有收到包就退出</span></span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			IUINT32 sn = *(IUINT32*)(buffer + <span class="number">0</span>);</span><br><span class="line">			IUINT32 ts = *(IUINT32*)(buffer + <span class="number">4</span>);</span><br><span class="line">			IUINT32 rtt = current - ts;</span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> (sn != next) &#123;</span><br><span class="line">				<span class="comment">// 如果收到的包不连续</span></span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">&quot;ERROR sn %d&lt;-&gt;%d\n&quot;</span>, (<span class="type">int</span>)count, (<span class="type">int</span>)next);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			next++;</span><br><span class="line">			sumrtt += rtt;</span><br><span class="line">			count++;</span><br><span class="line">			<span class="keyword">if</span> (rtt &gt; (IUINT32)maxrtt) maxrtt = rtt;</span><br><span class="line"></span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;[RECV] mode=%d sn=%d rtt=%d\n&quot;</span>, mode, (<span class="type">int</span>)sn, (<span class="type">int</span>)rtt);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (next &gt; <span class="number">1000</span>) <span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ts1 = iclock() - ts1;</span><br><span class="line"></span><br><span class="line">	ikcp_release(kcp1);</span><br><span class="line">	ikcp_release(kcp2);</span><br><span class="line"></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *names[<span class="number">3</span>] = &#123; <span class="string">&quot;default&quot;</span>, <span class="string">&quot;normal&quot;</span>, <span class="string">&quot;fast&quot;</span> &#125;;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;%s mode result (%dms):\n&quot;</span>, names[mode], (<span class="type">int</span>)ts1);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;avgrtt=%d maxrtt=%d tx=%d\n&quot;</span>, (<span class="type">int</span>)(sumrtt / count), (<span class="type">int</span>)maxrtt, (<span class="type">int</span>)vnet-&gt;tx1);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;press enter to next ...\n&quot;</span>);</span><br><span class="line">	<span class="type">char</span> ch; <span class="built_in">scanf</span>(<span class="string">&quot;%c&quot;</span>, &amp;ch);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	test(<span class="number">0</span>);	<span class="comment">// 默认模式，类似 TCP：正常模式，无快速重传，常规流控</span></span><br><span class="line">	test(<span class="number">1</span>);	<span class="comment">// 普通模式，关闭流控等</span></span><br><span class="line">	test(<span class="number">2</span>);	<span class="comment">// 快速模式，所有开关都打开，且关闭流控</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">default mode result (20917ms):</span></span><br><span class="line"><span class="comment">avgrtt=740 maxrtt=1507</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">normal mode result (20131ms):</span></span><br><span class="line"><span class="comment">avgrtt=156 maxrtt=571</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">fast mode result (20207ms):</span></span><br><span class="line"><span class="comment">avgrtt=138 maxrtt=392</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" rel="tag"># 基础知识</a>
+              <a href="/tags/UDP-TCP/" rel="tag"># UDP/TCP</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag"># 网络</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/07/31/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1%EF%BC%88%E4%BA%8C%EF%BC%89TCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/" rel="prev" title="游戏中的网络通信（二）TCP协议详解">
+                  <i class="fa fa-angle-left"></i> 游戏中的网络通信（二）TCP协议详解
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Lenzo</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lenzo15" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+        <style>
+            [bg-lazy] {
+                background-image: none !important;
+                background-color: #eee !important;
+            }
+        </style>
+        <script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                preloadRatio: 1,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z\d\-\.\+]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(t.test(e.href)||r.test(e.href))&&(e.href=a.dataset.original)})});</script><script>(r=>{r.imageLazyLoadSetting.processImages=t;var a=r.imageLazyLoadSetting.isSPA,o=r.imageLazyLoadSetting.preloadRatio||1,d=i();function i(){var t=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")),e=Array.prototype.slice.call(document.querySelectorAll("[bg-lazy]"));return t.concat(e)}function t(t){(a||t)&&(d=i());for(var e,n=0;n<d.length;n++)0<=(e=(e=d[n]).getBoundingClientRect()).bottom&&0<=e.left&&e.top<=(r.innerHeight*o||document.documentElement.clientHeight*o)&&(()=>{var t,e,a,o,i=d[n];e=function(){d=d.filter(function(t){return i!==t}),r.imageLazyLoadSetting.onImageLoaded&&r.imageLazyLoadSetting.onImageLoaded(i)},(t=i).dataset.loaded||(t.hasAttribute("bg-lazy")?(t.removeAttribute("bg-lazy"),e&&e()):(a=new Image,o=t.getAttribute("data-original"),a.onload=function(){t.src=o,t.removeAttribute("data-original"),t.setAttribute("data-loaded",!0),e&&e()},a.onerror=function(){t.removeAttribute("data-original"),t.setAttribute("data-loaded",!1),t.src=o},t.src!==o&&(a.src=o)))})()}function e(){clearTimeout(t.tId),t.tId=setTimeout(t,500)}t(),document.addEventListener("scroll",e),r.addEventListener("resize",e),r.addEventListener("orientationchange",e)})(this);</script></body>
+<script>
+    var background_url = 'https://i0.hdslb.com/bfs/new_dyn/ae27f87606591cb8f09c477bc42464353127575.jpg'
+    set_background_image(background_url)
+    function set_background_image(url) {
+        var hidden_pic = document.createElement("img");
+        hidden_pic.width = "320";
+        hidden_pic.style.display = "none";
+        var obj = document.getElementsByTagName('body')[0];
+        obj.appendChild(hidden_pic);
+        hidden_pic.src = url;
+        obj.style.backgroundImage = "url(" + url + ")";}
+</script>
+</html>
