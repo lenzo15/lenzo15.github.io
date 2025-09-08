@@ -254,9 +254,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2025-09-01 19:23:26 / 修改时间：19:24:05" itemprop="dateCreated datePublished" datetime="2025-09-01T19:23:26+08:00">2025-09-01</time>
+      <time title="创建时间：2025-09-01 19:23:26" itemprop="dateCreated datePublished" datetime="2025-09-01T19:23:26+08:00">2025-09-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-09-08 09:55:11" itemprop="dateModified" datetime="2025-09-08T09:55:11+08:00">2025-09-08</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -317,7 +323,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/09/01/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E5%8E%9F%E7%90%86/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/09/01/%E6%95%B0%E5%AD%A6/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/icon.png">
@@ -335,7 +341,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/09/01/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E5%8E%9F%E7%90%86/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">快速平方根倒数算法</a>
+          <a href="/2025/09/01/%E6%95%B0%E5%AD%A6/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">快速平方根倒数算法</a>
         </h2>
 
         <div class="post-meta-container">
@@ -345,9 +351,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2025-09-01 18:28:05 / 修改时间：19:24:18" itemprop="dateCreated datePublished" datetime="2025-09-01T18:28:05+08:00">2025-09-01</time>
+      <time title="创建时间：2025-09-01 18:28:05" itemprop="dateCreated datePublished" datetime="2025-09-01T18:28:05+08:00">2025-09-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-09-08 09:54:29" itemprop="dateModified" datetime="2025-09-08T09:54:29+08:00">2025-09-08</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -373,7 +385,7 @@
 <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">** float q_rsqrt( float number )</span></span><br><span class="line"><span class="comment">*/</span>  </span><br><span class="line"><span class="function"><span class="type">float</span> <span class="title">Q_rsqrt</span><span class="params">( <span class="type">float</span> number )</span>  </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">   <span class="type">long</span> i;  </span><br><span class="line">   <span class="type">float</span> x2, y;  </span><br><span class="line">   <span class="type">const</span> <span class="type">float</span> threehalfs = <span class="number">1.5F</span>;  </span><br><span class="line"> </span><br><span class="line">   x2 = number * <span class="number">0.5F</span>;  </span><br><span class="line">   y  = number;  </span><br><span class="line">   i  = * ( <span class="type">long</span> * ) &amp;y;                       <span class="comment">// evil floating point bit level hacking  </span></span><br><span class="line">   i  = <span class="number">0x5f3759df</span> - ( i &gt;&gt; <span class="number">1</span> );               <span class="comment">// what the fuck?  </span></span><br><span class="line">   y  = * ( <span class="type">float</span> * ) &amp;i;  </span><br><span class="line">   y  = y * ( threehalfs - ( x2 * y * y ) );   <span class="comment">// 1st iteration  </span></span><br><span class="line"><span class="comment">// y = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed  </span></span><br><span class="line"> </span><br><span class="line">   <span class="keyword">return</span> y;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2025/09/01/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E5%8E%9F%E7%90%86/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/#more" rel="contents">
+              <a class="btn" href="/2025/09/01/%E6%95%B0%E5%AD%A6/%E5%BF%AB%E9%80%9F%E5%B9%B3%E6%96%B9%E6%A0%B9%E5%80%92%E6%95%B0%E7%AE%97%E6%B3%95/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
