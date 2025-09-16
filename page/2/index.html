@@ -189,13 +189,13 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-count">18</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -217,6 +217,307 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/08/07/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%BA%94%EF%BC%89%E7%BD%91%E7%BB%9C%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88%E6%A6%82%E8%A7%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/icon.png">
+      <meta itemprop="name" content="Lenzo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Lenzo's Blog">
+      <meta itemprop="description" content="Viva los artistas y su amor!">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Lenzo's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/08/07/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%BA%94%EF%BC%89%E7%BD%91%E7%BB%9C%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88%E6%A6%82%E8%A7%88/" class="post-title-link" itemprop="url">游戏中的网络通讯（五）网络同步方案概览</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-07 19:58:46" itemprop="dateCreated datePublished" datetime="2025-08-07T19:58:46+08:00">2025-08-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-25 09:44:45" itemprop="dateModified" datetime="2025-08-25T09:44:45+08:00">2025-08-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/" itemprop="url" rel="index"><span itemprop="name">网络通信</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%90%8C%E6%AD%A5/" itemprop="url" rel="index"><span itemprop="name">网络同步</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="概览"><a class="markdownIt-Anchor" href="#概览"></a> 概览</h2>
+<p>同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。<br>
+在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/08/07/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%BA%94%EF%BC%89%E7%BD%91%E7%BB%9C%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88%E6%A6%82%E8%A7%88/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/08/04/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E5%9B%9B%EF%BC%89Protobuf%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/icon.png">
+      <meta itemprop="name" content="Lenzo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Lenzo's Blog">
+      <meta itemprop="description" content="Viva los artistas y su amor!">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Lenzo's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/08/04/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E5%9B%9B%EF%BC%89Protobuf%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">游戏中的网络通讯（四）Protobuf详解</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-04 17:19:58" itemprop="dateCreated datePublished" datetime="2025-08-04T17:19:58+08:00">2025-08-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-08 10:12:15" itemprop="dateModified" datetime="2025-08-08T10:12:15+08:00">2025-08-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/" itemprop="url" rel="index"><span itemprop="name">网络通信</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/" itemprop="url" rel="index"><span itemprop="name">网络协议</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="网络数据协议格式"><a class="markdownIt-Anchor" href="#网络数据协议格式"></a> 网络数据协议格式</h2>
+<p>协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的&quot;包装方式&quot;——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在&quot;可读性&quot;与&quot;效率&quot;上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化/反序列化相当于&quot;装箱/拆箱&quot;过程，比如部分格式可以开箱即用，而部分是压缩袋打包的，开箱后则需将打包物体恢复原状。<br>
+除了上述格式外，还有比如YAML、XML甚至自定义二进制格式，这些只是数据的包装运输手段，同一份数据可以用不同的格式传输。所以协议格式的重点在于：</p>
+<ul>
+<li>序列化：数据被包装成该格式的过程</li>
+<li>反序列化：从该格式的数据包中还原出原数据的过程</li>
+<li>传输效率：序列化后的数据包大小。</li>
+<li>可读性：序列化后的数据包能不能被人看出来原本的数据内容。</li>
+</ul>
+<p>这里不详细介绍JSON、MsgPack等格式，感兴趣的读者可以自行查找，这里仅介绍Protobuf。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/08/04/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E5%9B%9B%EF%BC%89Protobuf%E8%AF%A6%E8%A7%A3/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://lenzo15.github.io/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/icon.png">
+      <meta itemprop="name" content="Lenzo">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Lenzo's Blog">
+      <meta itemprop="description" content="Viva los artistas y su amor!">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Lenzo's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">游戏中的网络通讯（三）KCP协议详解</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-01 15:37:16" itemprop="dateCreated datePublished" datetime="2025-08-01T15:37:16+08:00">2025-08-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-07 20:02:05" itemprop="dateModified" datetime="2025-08-07T20:02:05+08:00">2025-08-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/" itemprop="url" rel="index"><span itemprop="name">网络通信</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/" itemprop="url" rel="index"><span itemprop="name">网络协议</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="介绍"><a class="markdownIt-Anchor" href="#介绍"></a> 介绍</h2>
+<p><a target="_blank" rel="noopener" href="https://github.com/skywind3000/kcp">KCP - A Fast and Reliable ARQ Protocol</a><br>
+KCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系统调用。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/08/01/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B8%B8%E6%88%8F%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E9%80%9A%E8%AE%AF%EF%BC%88%E4%B8%89%EF%BC%89KCP%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
