@@ -1,0 +1,470 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>游戏中的网络通讯（四）Protobuf详解 | Lenzo's Blog</title><meta name="author" content="Lenzo"><meta name="copyright" content="Lenzo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="网络数据协议格式协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的”包装方式”——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在”可读性”与”效率”上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化&#x2F;反序列">
+<meta property="og:type" content="article">
+<meta property="og:title" content="游戏中的网络通讯（四）Protobuf详解">
+<meta property="og:url" content="https://lenzo15.github.io/posts/1876586415/index.html">
+<meta property="og:site_name" content="Lenzo&#39;s Blog">
+<meta property="og:description" content="网络数据协议格式协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的”包装方式”——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在”可读性”与”效率”上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化&#x2F;反序列">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lenzo15.github.io/img/butterfly-icon.png">
+<meta property="article:published_time" content="2025-08-04T09:19:58.000Z">
+<meta property="article:modified_time" content="2025-09-29T03:09:16.717Z">
+<meta property="article:author" content="Lenzo">
+<meta property="article:tag" content="Protobuf">
+<meta property="article:tag" content="UDP&#x2F;TCP">
+<meta property="article:tag" content="网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lenzo15.github.io/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "游戏中的网络通讯（四）Protobuf详解",
+  "url": "https://lenzo15.github.io/posts/1876586415/",
+  "image": "https://lenzo15.github.io/img/butterfly-icon.png",
+  "datePublished": "2025-08-04T09:19:58.000Z",
+  "dateModified": "2025-09-29T03:09:16.717Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Lenzo",
+      "url": "https://lenzo15.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/butterfly-icon.png"><link rel="canonical" href="https://lenzo15.github.io/posts/1876586415/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'https://github.com/francoischalifour/medium-zoom',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '游戏中的网络通讯（四）Protobuf详解',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.0.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/lenzo_top_img.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Lenzo's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">游戏中的网络通讯（四）Protobuf详解</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">游戏中的网络通讯（四）Protobuf详解</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-08-04T09:19:58.000Z" title="发表于 2025-08-04 17:19:58">2025-08-04</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-09-29T03:09:16.717Z" title="更新于 2025-09-29 11:09:16">2025-09-29</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/">网络通信</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">网络协议</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="网络数据协议格式"><a href="#网络数据协议格式" class="headerlink" title="网络数据协议格式"></a>网络数据协议格式</h2><p>协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的”包装方式”——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在”可读性”与”效率”上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化/反序列化相当于”装箱/拆箱”过程，比如部分格式可以开箱即用，而部分是压缩袋打包的，开箱后则需将打包物体恢复原状。<br>除了上述格式外，还有比如YAML、XML甚至自定义二进制格式，这些只是数据的包装运输手段，同一份数据可以用不同的格式传输。所以协议格式的重点在于：</p>
+<ul>
+<li>序列化：数据被包装成该格式的过程</li>
+<li>反序列化：从该格式的数据包中还原出原数据的过程</li>
+<li>传输效率：序列化后的数据包大小。</li>
+<li>可读性：序列化后的数据包能不能被人看出来原本的数据内容。</li>
+</ul>
+<p>这里不详细介绍JSON、MsgPack等格式，感兴趣的读者可以自行查找，这里仅介绍Protobuf。<br><span id="more"></span></p>
+<h2 id="ProtoBuf-简介"><a href="#ProtoBuf-简介" class="headerlink" title="ProtoBuf 简介"></a>ProtoBuf 简介</h2><p><a target="_blank" rel="noopener" href="https://protobuf.com.cn/overview/">ProtoBuf的官网</a>中这样介绍这个协议:<br>Protocol Buffers 是一种语言中立、平台中立、可扩展的序列化结构化数据的机制。它类似于 JSON，但更小、更快，并且生成原生语言绑定。你只需定义一次你想要的数据结构，然后就可以使用特殊生成的源代码轻松地以各种数据流和多种语言写入和读取你的结构化数据。<br>Protocol Buffers 提供了一种序列化格式，用于处理大小可达几兆字节的、带类型、结构化的数据包。这种格式适用于瞬时网络流量和长期数据存储。无需使现有数据失效或要求更新代码，即可使用新信息扩展 Protocol Buffers。<br>使用 Protocol Buffers 的一些优点包括</p>
+<ul>
+<li>紧凑的数据存储</li>
+<li>快速解析</li>
+<li>支持多种编程语言</li>
+<li>通过自动生成的类实现优化的功能</li>
+</ul>
+<h2 id="语言语法"><a href="#语言语法" class="headerlink" title="语言语法"></a>语言语法</h2><p>proto3 比 proto2 支持更多语言但更简洁。去掉了一些复杂的语法和特性，更强调约定而弱化语法。这里仅介绍 proto3 的语法。<br><figure class="highlight proto"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">syntax = <span class="string">&quot;proto3&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;google/protobuf/any.proto&quot;</span>;</span><br><span class="line"><span class="keyword">package</span> Foo.Test;</span><br><span class="line"><span class="keyword">message </span><span class="title class_">Testmsg1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">bool</span> testBool = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">enum </span><span class="title class_">EnumTest</span> &#123;</span><br><span class="line">  EnumTest1 = <span class="number">0</span>;</span><br><span class="line">  EnumTest2 = <span class="number">1</span>;</span><br><span class="line">  EnumTest3 = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">message </span><span class="title class_">TestPB</span> </span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">string</span> testString = <span class="number">1</span>;</span><br><span class="line">    <span class="type">int32</span> testInt = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">optional</span> <span class="type">sint32</span> testSInt = <span class="number">3</span>;</span><br><span class="line">    <span class="keyword">repeated</span> Testmsg1 testMsgList = <span class="number">4</span>;</span><br><span class="line">    map&lt;<span class="type">string</span>, <span class="type">int32</span>&gt; testMap = <span class="number">5</span>;</span><br><span class="line">    EnumTest enumTest = <span class="number">6</span>;</span><br><span class="line">    <span class="keyword">repeated</span> google.protobuf.Any details = <span class="number">7</span>;</span><br><span class="line">    <span class="keyword">oneof</span> testOneof </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">string</span> oneOfString = <span class="number">8</span>;</span><br><span class="line">        <span class="type">int32</span> oneOfInt = <span class="number">9</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure><br>在上述示例中，文件的第一行 <code>syntex</code> 指定使用的是 protobuf 语言规范的版本，例子中使用了 proto3 版本。<br>第二行使用 <code>import</code> 导入其他 <code>.proto</code> 文件中的定义，这里为了使用 <code>Any</code> 消息类型，必须导入 <code>google/protobuf/any.proto</code> 文件。<br>第三行使用 <code>package</code> 说明符（类似于命名空间），以防止类型之间发生名称冲突，在生成成对于语言的代码时，比如C#，<code>package</code> 也还会用作生成消息类的命名空间。<br>之后以 <code>message</code> 开头的 <code>Testmsg1</code> 表示在该 <code>package</code> 下创建一个名为 <code>Testmsg1</code> 的消息结构。<code>message</code> 是 Protobuf 中的核心概念，用于定义数据结构。在消息结构内部，<code>bool testBool = 1;</code> 用 <code>bool</code> 值指定了消息字段的类型，类型包括标量类型和自定义类型，详细的标量类型见<a href="#标量类型">标量类型</a>，<code>testBool</code> 指定了消息字段的命名，<code>1</code>是为该字段分配编号。</p>
+<p>该消息类型生成的C#代码如下：<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">Foo.Test</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    [<span class="meta">global::ProtoBuf.ProtoContract()</span>]</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">Testmsg1</span> : <span class="title">global</span>::<span class="title">ProtoBuf.IExtensible</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">global</span>::ProtoBuf.IExtension __pbn__extensionData;</span><br><span class="line">        <span class="keyword">global</span>::ProtoBuf.IExtension <span class="keyword">global</span>::ProtoBuf.IExtensible.GetExtensionObject(<span class="built_in">bool</span> createIfMissing)</span><br><span class="line">            =&gt; <span class="keyword">global</span>::ProtoBuf.Extensible.GetExtensionObject(<span class="keyword">ref</span> __pbn__extensionData, createIfMissing);</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(1)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">bool</span> testBool &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>以 <code>enum</code> 开头的消息类型定义了一个枚举，protobuf 官方规定，在 proto3 中，枚举定义中定义的第一个值必须为零，并且名称应为 <code>ENUM_TYPE_NAME_UNSPECIFIED</code> 或 <code>ENUM_TYPE_NAME_UNKNOWN</code>。还建议第一个默认值除了表示“此值未指定”之外不应该有其他语义含义。该消息类型生成的C#代码如下：<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">Foo.Test</span></span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">global::ProtoBuf.ProtoContract()</span>]</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">enum</span> EnumTest</span><br><span class="line">    &#123;</span><br><span class="line">        EnumTest1 = <span class="number">0</span>,</span><br><span class="line">        EnumTest2 = <span class="number">1</span>,</span><br><span class="line">        EnumTest3 = <span class="number">2</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>在最重要的 <code>TestPB</code> 消息结构中，编号 3、4、5 的字段分别使用了 <code>optional</code>、<code>repeated</code>、<code>map</code> 修饰符，这是指定字段基数的修饰符。在 proto3 中，消息字段可以具有以下的基数类型：</p>
+<ul>
+<li><code>optional</code> 单一字段，一个 <code>optional</code> 字段有两种可能的状态<ul>
+<li>字段已设置，并包含一个被明确设置或从线格式解析的值。它将被序列化到线格式中。</li>
+<li>字段未设置，将返回默认值。它不会被序列化到线格式中。</li>
+</ul>
+</li>
+<li>隐式单一字段，为了最大限度地与 protobuf 版本和 proto2 兼容，<strong>推荐使用 <code>optional</code> 而非隐式字段</strong>。隐式字段没有明确的基数标签，并且行为如下：<ul>
+<li>如果字段是消息类型，它的行为就像一个 <code>optional</code> 字段。</li>
+<li>如果字段不是消息类型，它有两种状态<ul>
+<li>字段设置为非默认值（非零），该值被明确设置或从线格式解析。它将被序列化到线格式中。</li>
+<li>字段设置为默认值（零）。它不会被序列化到线格式中。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>repeated</code>：此字段类型在格式良好的消息中可以重复零次或多次。重复值的顺序将得到保留。</li>
+<li><code>map</code>：这是一种成对的键/值字段类型。<code>map</code> 字段只是特殊 <code>repeated</code> 字段的简写，相当于包含两个字段的 <code>repeated</code> 消息结构。<br>其中，编号4、6的字段使用了自定义的消息结构和枚举类型。<br>编号7的字段使用了 <code>Any</code> 类型，表明这是一个自定义的“泛化”的类型，<code>Any</code> 消息类型允许您将消息用作嵌入类型，而无需其 .proto 定义。一个 <code>Any</code> 包含一个任意序列化的消息作为 bytes，以及一个充当该消息类型全局唯一标识符并解析为该消息类型的 URL。要使用 Any 类型，需要导入 <code>google/protobuf/any.proto</code>。<br>编号8，9的字段被包括在被 <code>oneof</code> 修饰的消息体中，<code>oneof</code> 类似于C++中的 <code>Union</code> 联合体，<code>oneof</code> 中的所有字段共享内存，并且最多只能同时设置一个字段。<br><code>TestPB</code> 生成的C#代码如下：<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">Foo.Test</span></span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">global::ProtoBuf.ProtoContract()</span>]</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">TestPB</span> : <span class="title">global</span>::<span class="title">ProtoBuf.IExtensible</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">global</span>::ProtoBuf.IExtension __pbn__extensionData;</span><br><span class="line">        <span class="keyword">global</span>::ProtoBuf.IExtension <span class="keyword">global</span>::ProtoBuf.IExtensible.GetExtensionObject(<span class="built_in">bool</span> createIfMissing)</span><br><span class="line">            =&gt; <span class="keyword">global</span>::ProtoBuf.Extensible.GetExtensionObject(<span class="keyword">ref</span> __pbn__extensionData, createIfMissing);</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(1)</span>]</span><br><span class="line">        [<span class="meta">global::System.ComponentModel.DefaultValue(<span class="string">&quot;&quot;</span>)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> testString &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125; = <span class="string">&quot;&quot;</span>;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(2)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> testInt &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(3, DataFormat = global::ProtoBuf.DataFormat.ZigZag)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> testSInt</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span> =&gt; __pbn__testSInt.GetValueOrDefault();</span><br><span class="line">            <span class="keyword">set</span> =&gt; __pbn__testSInt = <span class="keyword">value</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">ShouldSerializetestSInt</span>()</span> =&gt; __pbn__testSInt != <span class="literal">null</span>;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ResettestSInt</span>()</span> =&gt; __pbn__testSInt = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">private</span> <span class="built_in">int</span>? __pbn__testSInt;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(4, Name = @<span class="string">&quot;testMsgList&quot;</span>)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">global</span>::System.Collections.Generic.List&lt;Testmsg1&gt; testMsgLists &#123; <span class="keyword">get</span>; &#125; = <span class="keyword">new</span> <span class="keyword">global</span>::System.Collections.Generic.List&lt;Testmsg1&gt;();</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(5, Name = @<span class="string">&quot;testMap&quot;</span>)</span>]</span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMap</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">global</span>::System.Collections.Generic.Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">int</span>&gt; testMaps &#123; <span class="keyword">get</span>; &#125; = <span class="keyword">new</span> <span class="keyword">global</span>::System.Collections.Generic.Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">int</span>&gt;();</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(6)</span>]</span><br><span class="line">        <span class="keyword">public</span> EnumTest enumTest &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(7, Name = @<span class="string">&quot;details&quot;</span>)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">global</span>::System.Collections.Generic.List&lt;<span class="keyword">global</span>::Google.Protobuf.WellKnownTypes.Any&gt; Details &#123; <span class="keyword">get</span>; &#125; = <span class="keyword">new</span> <span class="keyword">global</span>::System.Collections.Generic.List&lt;<span class="keyword">global</span>::Google.Protobuf.WellKnownTypes.Any&gt;();</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(8)</span>]</span><br><span class="line">        [<span class="meta">global::System.ComponentModel.DefaultValue(<span class="string">&quot;&quot;</span>)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> oneOfString</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span> =&gt; __pbn__testOneof.Is(<span class="number">8</span>) ? ((<span class="built_in">string</span>)__pbn__testOneof.Object) : <span class="string">&quot;&quot;</span>;</span><br><span class="line">            <span class="keyword">set</span> =&gt; __pbn__testOneof = <span class="keyword">new</span> <span class="keyword">global</span>::ProtoBuf.DiscriminatedUnion32Object(<span class="number">8</span>, <span class="keyword">value</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">ShouldSerializeoneOfString</span>()</span> =&gt; __pbn__testOneof.Is(<span class="number">8</span>);</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ResetoneOfString</span>()</span> =&gt; <span class="keyword">global</span>::ProtoBuf.DiscriminatedUnion32Object.Reset(<span class="keyword">ref</span> __pbn__testOneof, <span class="number">8</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">global</span>::ProtoBuf.DiscriminatedUnion32Object __pbn__testOneof;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">global::ProtoBuf.ProtoMember(9)</span>]</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> oneOfInt</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span> =&gt; __pbn__testOneof.Is(<span class="number">9</span>) ? __pbn__testOneof.Int32 : <span class="literal">default</span>;</span><br><span class="line">            <span class="keyword">set</span> =&gt; __pbn__testOneof = <span class="keyword">new</span> <span class="keyword">global</span>::ProtoBuf.DiscriminatedUnion32Object(<span class="number">9</span>, <span class="keyword">value</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">ShouldSerializeoneOfInt</span>()</span> =&gt; __pbn__testOneof.Is(<span class="number">9</span>);</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ResetoneOfInt</span>()</span> =&gt; <span class="keyword">global</span>::ProtoBuf.DiscriminatedUnion32Object.Reset(<span class="keyword">ref</span> __pbn__testOneof, <span class="number">9</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="标量类型"><a href="#标量类型" class="headerlink" title="标量类型"></a>标量类型</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Proto类型</th>
+<th>C#类型</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>double</td>
+<td>double</td>
+<td></td>
+</tr>
+<tr>
+<td>float</td>
+<td>float</td>
+<td></td>
+</tr>
+<tr>
+<td>int32</td>
+<td>int</td>
+<td>使用变长编码。对负数编码效率低下——如果您的字段可能包含负值，请改用 sint32。</td>
+</tr>
+<tr>
+<td>int64</td>
+<td>long</td>
+<td>使用变长编码。对负数编码效率低下——如果您的字段可能包含负值，请改用 sint64。</td>
+</tr>
+<tr>
+<td>uint32</td>
+<td>uint</td>
+<td>使用变长编码。</td>
+</tr>
+<tr>
+<td>uint64</td>
+<td>ulong</td>
+<td>使用变长编码。</td>
+</tr>
+<tr>
+<td>sint32</td>
+<td>int</td>
+<td>使用变长编码。有符号整数值。与常规 int32 相比，它们对负数编码更高效。</td>
+</tr>
+<tr>
+<td>sint64</td>
+<td>long</td>
+<td>使用变长编码。有符号整数值。与常规 int64 相比，它们对负数编码更高效。</td>
+</tr>
+<tr>
+<td>fixed32</td>
+<td>uint</td>
+<td>总是四个字节。如果值经常大于 $2^{28}$，比 uint32 更高效。</td>
+</tr>
+<tr>
+<td>fixed64</td>
+<td>ulong</td>
+<td>总是八个字节。如果值经常大于 $2^{56}$，比 uint64 更高效。</td>
+</tr>
+<tr>
+<td>sfixed32</td>
+<td>int</td>
+<td>总是四个字节。</td>
+</tr>
+<tr>
+<td>sfixed64</td>
+<td>long</td>
+<td>总是八个字节。</td>
+</tr>
+<tr>
+<td>bool</td>
+<td>bool</td>
+<td></td>
+</tr>
+<tr>
+<td>string</td>
+<td>string</td>
+<td>字符串必须始终包含 UTF-8 编码或 7 位 ASCII 文本，且长度不能超过 $2^{32}$。</td>
+</tr>
+<tr>
+<td>bytes</td>
+<td>ByteString</td>
+<td>可以包含任何不超过 $2^{32}$ 字节的任意字节序列。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>其他详情见<a target="_blank" rel="noopener" href="https://protobuf.com.cn/programming-guides/proto3/#scalar">官网介绍</a></p>
+<h2 id="编码原理"><a href="#编码原理" class="headerlink" title="编码原理"></a>编码原理</h2><p>首先需要明确 Proto 中的线格式（Wire Format）概念，​​线格式是实际在网络传输或存储中使用的二进制编码格式，其设计基于 ​​TLV（Tag-Length-Value）结构​​，但会根据数据类型动态简化。</p>
+<h3 id="可变宽度整数（varints）"><a href="#可变宽度整数（varints）" class="headerlink" title="可变宽度整数（varints）"></a>可变宽度整数（varints）</h3><p>可变宽度整数，或称 varints，是线格式的核心。它们允许使用一到十个字节编码无符号 64 位整数，其中小值使用较少的字节。<br>varint 中的每个字节都有一个延续位，指示其后面的字节是否是 varint 的一部分。这是字节的最高有效位 (MSB)（有时也称为符号位）。较低的 7 位是有效载荷；通过将其组成字节的 7 位有效载荷拼接在一起构建出结果整数。如下例子：<br>数字 1 编码为 <code>01</code> – 这可以被七位表示，所以 MSB 未设置，为0。<br><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000 0001</span><br><span class="line">^ msb</span><br></pre></td></tr></table></figure><br>数字 150，编码为 <code>9601</code> 翻译为二进制为 <code>10010110</code>，会被 varints 编码为<br><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">10010110 00000001</span><br><span class="line">^ msb    ^ msb</span><br></pre></td></tr></table></figure><br>首先，第一个字节后7位被设置完，还无法表示完这个数字，所以第一个字节的第8位的 MSB 被设置为 1，表示后一个字节也是该 varint 的一部分，这些 7 位有效载荷是小端序的。转换为大端序，连接起来，并解释为无符号 64 位整数，及 <code>0000001  0010110</code> 等于二进制的 150 。</p>
+<h3 id="消息结构"><a href="#消息结构" class="headerlink" title="消息结构"></a>消息结构</h3><p>protocol buffer 消息是一系列键值对。消息的二进制版本仅使用字段编号作为键 – 每个字段的名称和声明类型只能在解码端通过引用消息类型的定义（即 .proto 文件）来确定。<br>消息编码时，每个键值对都会转换为一个记录，包含<strong>字段编号、线类型和有效载荷</strong>。线类型告诉解析器其后面的有效载荷有多大。这使得旧的解析器可以跳过它们不理解的新字段。这种方案被称为 Tag-Length-Value，或 TLV。<br>在proto中线类型有6种：<code>VARINT</code>、<code>I64</code>、<code>LEN</code>、<code>SGROUP</code>、<code>EGROUP</code> 和 <code>I32</code></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>名称</th>
+<th>用于</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>VARINT</td>
+<td>int32, int64, uint32, uint64, sint32, sint64, bool, enum</td>
+</tr>
+<tr>
+<td>1</td>
+<td>I64</td>
+<td>fixed64, sfixed64, double</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LEN</td>
+<td>string, bytes, 嵌入式消息, 紧凑重复字段</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SGROUP</td>
+<td>组开始 (已弃用)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>EGROUP</td>
+<td>组结束 (已弃用)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>I32</td>
+<td>fixed32, sfixed32, float</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>这里的 <code>Tag</code> 会被编码为一个 <code>varints</code> ，解码后的数据低3位表示线类型、其余位表示字段编号，写成公式就是<code>(field_number &lt;&lt; 3) | wire_type</code>。比如 <code>0000 1000</code> 数据，MSB为0，可以直接去掉。后三位即线类型为0，其余整数即字段编号为1。那么，该字节表示的数据是字段编号为1，类型为 <code>VARINT</code> 的tag。由此我们知道应该用 <code>VARINT</code> 来解码有效载荷的数据，假设和<a href="#可变宽度整数（varints）">可变宽度整数（varints）</a>中的例子一致，那么解码出来的有效载荷数据为150。我们就知道了消息体里编号为1的字段，数据为150。</p>
+<h3 id="ZigZag编码"><a href="#ZigZag编码" class="headerlink" title="ZigZag编码"></a>ZigZag编码</h3><p>考虑 <code>varints</code> 编码的负数，例如-2，在可编码64位的 <code>varints</code> 格式下，将会转换成2的补码。</p>
+<blockquote>
+<ul>
+<li>原码：原码是最直观的表示方法，它直接用二进制数表示一个数，包括正负号。在原码中，最高位（最左边的位）是符号位，0 表示正数，1 表示负数。其余位表示数值本身。例如，十进制数 +5 的原码表示为0000 0101，而 -5 的原码表示为 1000 0101。</li>
+<li>反码：反码主要用于表示负数。对于正数，其反码与其原码相同。对于负数，其反码是将原码除符号位外的所有位取反（0 变 1，1 变 0）。例如，十进制数-5的反码表示为1111 1010。</li>
+<li>补码：补码是计算机中最常用的表示方法，用于进行二进制加法运算。对于正数，其补码与其原码相同。对于负数，其补码是其反码加 1。补码的一个重要特性是，任何数的补码加上该数本身，结果总是 0。例如，十进制数 -5 的补码表示为 1111 1011。</li>
+</ul>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- -2的补码编码 --&gt;</span><br><span class="line">11111111 11111111 11111111 11111111</span><br><span class="line">11111111 11111111 11111111 11111110</span><br><span class="line">&lt;!-- varints编码-2补码形式 --&gt;</span><br><span class="line">11111110 11111111 11111111 11111111 11111111</span><br><span class="line">11111111 11111111 11111111 11111111 00000001</span><br></pre></td></tr></table></figure>
+<p>如上所示，<code>varints</code> 由于最高有效位 (MSB)的存在，会多使用2个字节来表示-2这个数。<br>为了解决这个问题，proto 使用 <code>ZigZag</code> 编码而不是补码来编码负整数。<code>ZigZag</code>采用这样的方式来编码数据：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">ZagZig</span>(<span class="params">x</span>):</span><br><span class="line">    <span class="keyword">if</span> x 是非负数数：</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span> * x</span><br><span class="line">    <span class="keyword">else</span>：</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">2</span> * x - <span class="number">1</span></span><br><span class="line"><span class="comment"># ZagZig(-1) = 1</span></span><br><span class="line"><span class="comment"># ZagZig(1) = 2</span></span><br><span class="line"><span class="comment"># ZagZig(-2) = 3</span></span><br><span class="line"><span class="comment"># ZagZig(2) = 4</span></span><br><span class="line"><span class="comment"># ...</span></span><br></pre></td></tr></table></figure><br><code>ZigZag</code>编码让数据按绝对值从小到大均匀的分布在非负整数上，且具有偶数是正整数，奇数是负整数的特点。直接的说，对于32位sint值n，按 <code>(n &lt;&lt; 1) ^ (n &gt;&gt; 31)</code> 方式编码。</p>
+<h3 id="长度分隔记录"><a href="#长度分隔记录" class="headerlink" title="长度分隔记录"></a>长度分隔记录</h3><p>长度前缀是线格式中的另一个主要概念。<code>LEN</code> 线类型具有动态长度，由标签后的 varint 指定，其后是通常的有效载荷。<br>考虑 <code>LEN</code> 线类型的字符串：<br><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">message Test2 &#123;</span><br><span class="line">  string b = 2;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>假设我们给一个 <code>Test2</code> 类型消息赋值为 “testing”，那么编码该记录会得到 <code>12 07 74 65 73 74 69 6e 67</code>。<br>在编码后的数据中，标签 <code>12</code> 二进制为 <code>0 00010 010</code> 他的 <code>MSB</code> 为0，后三位即线类型为2，其余位即字段编号为2，和我们定义的一致。由于这是<code>LEN</code> 线类型，他之后是 <code>int32 varint</code> 格式的有效载荷长度。<code>07</code> 二进制为 <code>0000 0111</code>，其 <code>MSB</code> 为0，所以表示数据长度为7，对应于“testing”7个字符。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io">Lenzo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io/posts/1876586415/">https://lenzo15.github.io/posts/1876586415/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lenzo15.github.io" target="_blank">Lenzo's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%BD%91%E7%BB%9C/">网络</a><a class="post-meta__tags" href="/tags/UDP-TCP/">UDP/TCP</a><a class="post-meta__tags" href="/tags/Protobuf/">Protobuf</a></div><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/3900935936/" title="游戏中的网络通讯（五）网络同步方案概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">游戏中的网络通讯（五）网络同步方案概览</div></div><div class="info-2"><div class="info-item-1">同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。具体来说，网络同步有多个重要目的：  为了保持游戏状态的一致性。比如在MMO游戏中，当一个玩家击败怪物获得宝物时，其他玩家需要立即知道这件事，否则就会出现两个玩家都以为自己获得了宝物的混乱局面。这种一致性体现在位置、生命值、物品状态等多个方面。 为了提供流畅的游戏体验。网络延迟是不可避免的，同步技术如客户端预测可以让玩家在等待服务器响应时也能有流畅的操作体验。如果同步不好，玩家会遇到角色瞬移、动作延迟等问题。 防止作弊。服务器通过权威验证可以防止玩家篡改本地客户端数据作弊。如果客户端可以随意修改状态而不被服务器检查，游戏就很容易被破解。 优化性能。通过差异化同步等技术，只传输变化的数据而不是完整状态，可...</div></div></div></a><a class="pagination-related" href="/posts/2662722858/" title="游戏中的网络通讯（三）KCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">游戏中的网络通讯（三）KCP协议详解</div></div><div class="info-2"><div class="info-item-1">KCP - A Fast and Reliable ARQ ProtocolKCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系统调用。reliable_udp_bench_mark 比较了多个基于UDP的可靠传输框架，并给出了下面的结论：并给出结论如下：  The kcp is the first choice for realtime pvp game. The lag is less than 1 second when network lag happen. 3 times better than enet when lag happen. The enet is a good choice if your game allow 2 second lag. UDT is a bad idea. It alwa...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/3386282172/" title="游戏中的网络通信（一）网络通信基础"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-19</div><div class="info-item-2">游戏中的网络通信（一）网络通信基础</div></div><div class="info-2"><div class="info-item-1"> 文章首先讲解了计算机网络的五层体系结构，重点分析了运输层的作用——为应用进程之间提供端到端通信，通过端口实现复用和分用功能。对比了UDP协议和TCP协议这两个主要的运输层协议。 计算机网络的体系结构常被分为或。其中，OSI的七层协议体系结构的概念清楚，理论也较完整，但它既复杂又不实用。TCP/IP体系结构则不同，它现在已经得到了非常广泛的应用。在谢希仁编著的《计算机网络》中，综合OSI和TCP/IP的优点，采用了一种只有五层协议的体系结构。  应用层：报文应用层是体系结构中的最高层。应用层的任务是通过应用进程间的交互来完成特定网络应用。应用层协议定义的是应用进程间通信和交互的规则。这里的进程(process)就是指主机中正在运行的程序。对于不同的网络应用需要有不同的应用层协议。在因特网中的应用层协议很多，如支持万维网应用的HTTP协议，支持文件传送的FTP协议，等等。我们将应用层交互的数据单元称为报文(message)。 运输层：报文段/用户数据段运输层的任务就是负责向两个主机中进程之间的通信提供通用的数据传输服务。应用进程利用该服务传送应用层报文。所谓通用，是指并不针对某个特...</div></div></div></a><a class="pagination-related" href="/posts/3544708607/" title="游戏中的网络通信（二）TCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-31</div><div class="info-item-2">游戏中的网络通信（二）TCP协议详解</div></div><div class="info-2"><div class="info-item-1">介绍了TCP协议的核心机制，主要包括四个方面：TCP可靠传输、TCP流量控制、TCP拥塞控制、TCP连接管理。 TCP的滑动窗口是以字节为单位的，包括发送窗口和接受窗口两种形式。发送窗口表示：在没有收到B的确认的情况下，A可以连续把窗口内的数据都发送出去。凡是已经发送过的数据，在未收到确认之前都必须暂时保留，以便在超时重传时使用。如图所示，要描述一个发送窗口的状态需要三个指针：P1，P2和P3。小于P1的是已发送并已收到确认的部分，而大于P3的是不允许发送的部分。P3 - P1 = A的发送窗口（又称为通知窗口）P2 - P1 = 已发送但尚未收到确认的字节数P3 - P2 = 允许发送但尚未发送的字节数（又称为可用窗口或有效窗口） 接收窗口相比比较简单，只有前沿和后沿，后沿表示已发送确认并且交付上层主机的数据，前沿表示不允许接受的最小序号，前后沿之间就是接受窗口。如图所示，B还收到了序号为32和33的数据，但这些都没有按序到达，只能先暂存在接收窗口中。当A在发送完窗口内的数据后，发送窗口内的序号都属于已发送但未被确认，在经过一段时间后（由超时计时器控制）A会重传已发送但未收到确...</div></div></div></a><a class="pagination-related" href="/posts/2662722858/" title="游戏中的网络通讯（三）KCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-01</div><div class="info-item-2">游戏中的网络通讯（三）KCP协议详解</div></div><div class="info-2"><div class="info-item-1">KCP - A Fast and Reliable ARQ ProtocolKCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系统调用。reliable_udp_bench_mark 比较了多个基于UDP的可靠传输框架，并给出了下面的结论：并给出结论如下：  The kcp is the first choice for realtime pvp game. The lag is less than 1 second when network lag happen. 3 times better than enet when lag happen. The enet is a good choice if your game allow 2 second lag. UDT is a bad idea. It alwa...</div></div></div></a><a class="pagination-related" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-01</div><div class="info-item-2">游戏中的网络通信（七）高性能定点数实现</div></div><div class="info-2"><div class="info-item-1">本文参考《腾讯游戏开发精粹》高性能的定点数实现方案，是该文的读书笔记和实践记录。 文章基于64位整型数实现定点数方案，约定第0-31位为小数部分，32-62位为整数部分，第63位为符号位，即32位有符号整数，32位小数。该方案能表示的范围为： [-2^{32},2^{31}-2^{-32}]精度为： \frac{1}{2^{32}} = 2.3283064365386963\times10^{-10}在数学上，把整数的二进制表示中较低的$n$位视为小数部分，那么一个整数的二进制形式表示的定点数值其实就是这个整数值除以$2^n$。设$a$为定点数，$f(a)$为这个定点数对应的整数值，即$f(a)$是一个整数，$a$是它所表示的定点数，那么有 a=2^{-n}f(a)不同项目可以根据自己实际情况，按所需精度来确定小数位数。 浮点数的加减需要先对齐阶码（相当对齐小数点）​，然后再相加减。而定点数的小数点是对齐的，可以直接使用对应的整数的加减法。 浮点数的乘法是通过整数部分相乘、阶码相加实现的。对于64位定点数，需要实现了一个双倍宽度（128位）的有符号整数的乘法运算。对于64位编译器...</div></div></div></a><a class="pagination-related" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-15</div><div class="info-item-2">游戏中的网络通信（八）网络同步预表现技术</div></div><div class="info-2"><div class="info-item-1">绝大多数的网络游戏，总会将服务器作为各客户端间交互通信的权威中转站和裁决者，玩家的操作指令总要经过服务器的中转，直到接收到服务器的下行数据后才能真正执行游戏逻辑、更新画面表现。这段网络通信的时间，导致从玩家发起操作到看到画面展示出相应的操作表现之间存在一段显示延迟。显示延迟超过一定阈值后，玩家的操作将不能得到即时的表现反馈，会有明显的延迟感受。为了优化高延迟网络下的游戏操作和表现延迟，客户端预表现技术应运而生。其主要策略是：在游戏操作发出时，由客户端在本地立即处理，先行执行和展示一些画面表现，而不必等到服务器确认下发。这样，在玩家按键操作的同时，游戏画面就能立即更新、展现部分操作表现反馈，玩家的操作手感得到明显提升。以下介绍一些常用或者著名的预表现方案。 客户端预测回滚是相当普遍常用的客户端表现技术。首先客户端先行，玩家输入（如按下前进键）后，客户端立即模拟操作结果（角色移动），无需等待服务器确认，以消除操作延迟。这就是客户端预测的部分。在服务器回包后，对比当前客户端预测，发现状态不一致的情况。这时则需要进行回滚。这时，客户端会回滚到状态不一致的那一帧，然后再重新应用这一帧之后的...</div></div></div></a><a class="pagination-related" href="/posts/3900935936/" title="游戏中的网络通讯（五）网络同步方案概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-07</div><div class="info-item-2">游戏中的网络通讯（五）网络同步方案概览</div></div><div class="info-2"><div class="info-item-1">同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。具体来说，网络同步有多个重要目的：  为了保持游戏状态的一致性。比如在MMO游戏中，当一个玩家击败怪物获得宝物时，其他玩家需要立即知道这件事，否则就会出现两个玩家都以为自己获得了宝物的混乱局面。这种一致性体现在位置、生命值、物品状态等多个方面。 为了提供流畅的游戏体验。网络延迟是不可避免的，同步技术如客户端预测可以让玩家在等待服务器响应时也能有流畅的操作体验。如果同步不好，玩家会遇到角色瞬移、动作延迟等问题。 防止作弊。服务器通过权威验证可以防止玩家篡改本地客户端数据作弊。如果客户端可以随意修改状态而不被服务器检查，游戏就很容易被破解。 优化性能。通过差异化同步等技术，只传输变化的数据而不是完整状态，可...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Lenzo</div><div class="author-info-description">Viva los artistas y su amor!</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/lenzo15"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lenzo15" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:lenzo@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">网络数据协议格式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ProtoBuf-%E7%AE%80%E4%BB%8B"><span class="toc-number">2.</span> <span class="toc-text">ProtoBuf 简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AF%AD%E8%A8%80%E8%AF%AD%E6%B3%95"><span class="toc-number">3.</span> <span class="toc-text">语言语法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%87%E9%87%8F%E7%B1%BB%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">标量类型</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E7%A0%81%E5%8E%9F%E7%90%86"><span class="toc-number">4.</span> <span class="toc-text">编码原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%AF%E5%8F%98%E5%AE%BD%E5%BA%A6%E6%95%B4%E6%95%B0%EF%BC%88varints%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">可变宽度整数（varints）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B6%88%E6%81%AF%E7%BB%93%E6%9E%84"><span class="toc-number">4.2.</span> <span class="toc-text">消息结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ZigZag%E7%BC%96%E7%A0%81"><span class="toc-number">4.3.</span> <span class="toc-text">ZigZag编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%95%BF%E5%BA%A6%E5%88%86%E9%9A%94%E8%AE%B0%E5%BD%95"><span class="toc-number">4.4.</span> <span class="toc-text">长度分隔记录</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术">游戏中的网络通信（八）网络同步预表现技术</a><time datetime="2025-09-15T14:52:15.000Z" title="发表于 2025-09-15 22:52:15">2025-09-15</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2274644961/" title="最小生成树算法">最小生成树算法</a><time datetime="2025-09-12T12:11:13.000Z" title="发表于 2025-09-12 20:11:13">2025-09-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/3306641566/" title="并查集">并查集</a><time datetime="2025-09-11T14:09:01.000Z" title="发表于 2025-09-11 22:09:01">2025-09-11</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现">游戏中的网络通信（七）高性能定点数实现</a><time datetime="2025-09-01T11:23:26.000Z" title="发表于 2025-09-01 19:23:26">2025-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/850070085/" title="快速平方根倒数算法">快速平方根倒数算法</a><time datetime="2025-09-01T10:28:05.000Z" title="发表于 2025-09-01 18:28:05">2025-09-01</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Lenzo</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.0.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const loadMathjax = () => {
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'all',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+          renderActions: {
+            findScript: [10, doc => {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/)
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+                const text = document.createTextNode('')
+                node.parentNode.replaceChild(text, node)
+                math.start = {node: text, delim: '', n: 0}
+                math.end = {node: text, delim: '', n: 0}
+                doc.math.push(math)
+              }
+            }, '']
+          }
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.startup.document.state(0)
+      MathJax.texReset()
+      MathJax.typesetPromise()
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

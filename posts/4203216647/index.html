@@ -1,0 +1,509 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>数的编码基础 | Lenzo's Blog</title><meta name="author" content="Lenzo"><meta name="copyright" content="Lenzo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="数的二进制表示对于任意一个$N$进制数而言，有下面的计算公式： (S)_N &#x3D; \sum_{i&#x3D;n-1}^{-m}k_iN^{i-1}其中，$n$ 为小数点前的数字位数（从1开始计数），$m$ 为小数点后的数字位数（从1开始计数）,$k_i$ 为对应第$i$位数。比如:对于十进制数 114.514 有：   (11.4)_{10} &#x3D; 1 \times 10^1+1\times10^0+4\tim">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数的编码基础">
+<meta property="og:url" content="https://lenzo15.github.io/posts/4203216647/index.html">
+<meta property="og:site_name" content="Lenzo&#39;s Blog">
+<meta property="og:description" content="数的二进制表示对于任意一个$N$进制数而言，有下面的计算公式： (S)_N &#x3D; \sum_{i&#x3D;n-1}^{-m}k_iN^{i-1}其中，$n$ 为小数点前的数字位数（从1开始计数），$m$ 为小数点后的数字位数（从1开始计数）,$k_i$ 为对应第$i$位数。比如:对于十进制数 114.514 有：   (11.4)_{10} &#x3D; 1 \times 10^1+1\times10^0+4\tim">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lenzo15.github.io/img/butterfly-icon.png">
+<meta property="article:published_time" content="2025-08-14T07:21:50.000Z">
+<meta property="article:modified_time" content="2025-09-29T10:26:59.273Z">
+<meta property="article:author" content="Lenzo">
+<meta property="article:tag" content="二进制">
+<meta property="article:tag" content="编码">
+<meta property="article:tag" content="计算机组成">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lenzo15.github.io/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "数的编码基础",
+  "url": "https://lenzo15.github.io/posts/4203216647/",
+  "image": "https://lenzo15.github.io/img/butterfly-icon.png",
+  "datePublished": "2025-08-14T07:21:50.000Z",
+  "dateModified": "2025-09-29T10:26:59.273Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Lenzo",
+      "url": "https://lenzo15.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/butterfly-icon.png"><link rel="canonical" href="https://lenzo15.github.io/posts/4203216647/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'https://github.com/francoischalifour/medium-zoom',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '数的编码基础',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.0.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/lenzo_top_img.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Lenzo's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">数的编码基础</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">数的编码基础</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-08-14T07:21:50.000Z" title="发表于 2025-08-14 15:21:50">2025-08-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-09-29T10:26:59.273Z" title="更新于 2025-09-29 18:26:59">2025-09-29</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90/">计算机组成</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90/%E7%BC%96%E7%A0%81/">编码</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="数的二进制表示"><a href="#数的二进制表示" class="headerlink" title="数的二进制表示"></a>数的二进制表示</h2><p>对于任意一个$N$进制数而言，有下面的计算公式：</p>
+<script type="math/tex; mode=display">(S)_N = \sum_{i=n-1}^{-m}k_iN^{i-1}</script><p>其中，$n$ 为小数点前的数字位数（从1开始计数），$m$ 为小数点后的数字位数（从1开始计数）,$k_i$ 为对应第$i$位数。<br>比如:<br>对于十进制数 114.514 有： </p>
+<script type="math/tex; mode=display">
+(11.4)_{10} = 1 \times 10^1+1\times10^0+4\times10^{-1} 
+    = \sum_{i=1}^{-1}k_i10^{i-1}</script><p>对于二进制数 101.01 有：</p>
+<script type="math/tex; mode=display">\begin{aligned}
+(10.01)_2 &= 1 \times 2^{1}+0\times2^{0}+0\times2^{-1}+1\times2^{-2} \\ 
+&= \sum_{i=1}^{-2}k_i2^{i-1} \\
+&= (5.25)_{10}
+\end{aligned}</script><p>对于十六进制数 A2.F 有：</p>
+<script type="math/tex; mode=display">(A2.F)_{16} = 10\times16^{1}+2\times16^{0}+15\times16^{-1} = (162.9375)_{10}</script><p>由于二进制表示的数总是位数太长，人们就常用八进制或十六进制来书写，而且八进制或十六进制表示的数据信息很容易转换成二进制表示。这就是一般计算机工作者普遍使用八进制或十六进制的原因。<br>由于数$2^3=8,2^4=16$所以一位八进制数所能表示的数值恰好相当于三位二进制数能表示的数值，而一位十六进制数与四位二进制数能表示的数值正好相当，因此八进制、十六进制与二进制数之间的转换极为方便。例如</p>
+<script type="math/tex; mode=display">(67.731)_8=(110111.111011001)_2</script><script type="math/tex; mode=display">(3AB4)_{16} = (0011101010110100)_2</script><p>反之，从二进制数转换成八进制数时，只要从小数点开始，分别别向左右两边把3位二进制数码划为一组，最左和最右一组不足3位用0补充，然后每组用一个八进制数码代替即成，例如</p>
+<script type="math/tex; mode=display">(11111101.01001111)_2=(375.236)_{8}</script><p>二进制数转换成十六进制数与此类似，只不过是四位二进制数码分为一组，例如</p>
+<script type="math/tex; mode=display">(1111101.01001111)_2 = (7D.4F)_{16}</script><h2 id="数的机械码编码"><a href="#数的机械码编码" class="headerlink" title="数的机械码编码"></a>数的机械码编码</h2><p>首先定义真值就是希望表示的数据的二进制形式。</p>
+<h3 id="无符号整数的编码"><a href="#无符号整数的编码" class="headerlink" title="无符号整数的编码"></a>无符号整数的编码</h3><p>在精度范围内，无符号数的编码就是该数的真值，这里用一个函数$U_w(x)$来表示$w$长度的数x的无符号数编码。<br>比如32位无符号整型数 114514：</p>
+<script type="math/tex; mode=display">U_32(114514)=(0000 0000 0000 0001 1011 1111 0101 0010)_2=(0001 BF52)_{16}</script><p>$w$位的无符号数的范围是$[0,2^{w}-1]$。对应$w$位数全为0和全为1的情况。</p>
+<h3 id="有符号整数的编码"><a href="#有符号整数的编码" class="headerlink" title="有符号整数的编码"></a>有符号整数的编码</h3><h4 id="原码编码"><a href="#原码编码" class="headerlink" title="原码编码"></a>原码编码</h4><p><strong>在精度范围内，原码就是符号位拼接上真值的绝对值</strong>。符号位为1表示值为负，为0表示值为正。<br>比如在8位格式表示下的原码：</p>
+<script type="math/tex; mode=display">114 = [0111 0010]_{原}</script><script type="math/tex; mode=display">-114 = [1111 0010]_{原}</script><script type="math/tex; mode=display">0 = [0000 0000]_{原} or [1000 0000]_{原}</script><script type="math/tex; mode=display">127 = [0111 1111]_{原}</script><script type="math/tex; mode=display">-127 = [1111 1111]_{原}</script><p>$w$位原码所能表示的范围是$[-(2^{w-1}-1),2^{w-1}-1]$<br>如果使用原码来做减法，可以发现：</p>
+<script type="math/tex; mode=display">\begin{aligned}
+ 1 - 1 &= 1 + (-1) \\
+        &= [0000 0001]_{原} + [1000 0001]_{原} \\
+        &= [1000 0010]_{原}  \\
+        &= -2
+\end{aligned}</script><p>如果让符号位参与计算，就会发现计算结果是错误的，那么如果要进行原码之间的计算，就需要单独处理符号位的部分，这是耗时且不统一的。为了解决原码做减法出现的问题，出现了反码。</p>
+<h4 id="反码编码"><a href="#反码编码" class="headerlink" title="反码编码"></a>反码编码</h4><p><strong>反码主要用于表示负数。对于正数，其反码与其原码相同，对于负数，反码是将原码除符号位外的所有位取反。</strong><br>比如在8位格式表示下的反码：</p>
+<script type="math/tex; mode=display">114 = [0111 0010]_{反}</script><script type="math/tex; mode=display">-114 = [1000 110]_{反}</script><script type="math/tex; mode=display">0 = [1111 1111]_{反} = [0000 0000]_{反}</script><script type="math/tex; mode=display">127 = [0111 1111]_{反}</script><script type="math/tex; mode=display">-127 = [1000 0000]_{反}</script><p>$w$位反码所能表示的范围是$[-(2^{w-1}-1),2^{w-1}-1]$和原码一致。<br>使用反码来实现的减法如下：</p>
+<script type="math/tex; mode=display">\begin{aligned}
+  1 - 1 &= 1 + (-1) \\
+        &= [0000 0001]_{反} + [1111 1110]_{反} \\
+        &= [1111 1111]_{反} \\
+        &= [1000 0000]_{原} \\
+        &= 0
+\end{aligned}</script><p>发现用反码计算减法，结果的真值部分是正确的。但是我们考虑反码的跨0运算情况：</p>
+<script type="math/tex; mode=display">\begin{aligned}
+2 - 1 &= [0000 0010]_{反} + [1111 1110]_{反}
+      &= [0000 0000]_{反}
+      &= 0 ？
+\end{aligned}</script><p>反码在跨0运算时，会出错。其次，还有<code>0</code>这个特殊的数值，虽然人们理解上<code>+0</code>和<code>-0</code>是一样的，但是0带符号是没有任何意义的，而且会有$[0000 0000]<em>{原}$和$[1000 0000]</em>{原}$两个编码表示0。为了解决了0的符号问题以及0的两个编码问题，出现了补码。</p>
+<h4 id="补码编码"><a href="#补码编码" class="headerlink" title="补码编码"></a>补码编码</h4><p>最常见的有符号数的计算机表示方式就是补码形式。补码编码的最高有效位（MSB）会被解释为符号位（也叫负权）。<strong>补码的表示方法是，正数的补码就是其原码，负数的补码是在其原码的基础上，符号位不变，其余各位取反，最后+1。</strong><br>以8位格式的补码为例。</p>
+<script type="math/tex; mode=display">114 = [0111 0010]_{补}</script><script type="math/tex; mode=display">-114 = [1000 1110]_{补}</script><script type="math/tex; mode=display">0 = [0000 0000]_{补}</script><script type="math/tex; mode=display">127 = [0111 1111]_{补}</script><script type="math/tex; mode=display">-127 = [1000 0001]_{补}</script><script type="math/tex; mode=display">-128 = [1000 0000]_{补}</script><p>这里由于补码的0只有一个编码表示，所以将原来的<code>-0</code>（$[1000 0000]_{原}$）拓展为负数最高位。<br>$w$位补码所能表示的范围是$[-(2^{w-1}),2^{w-1}-1]$<br>对于补码的减法：</p>
+<script type="math/tex; mode=display">\begin{aligned}
+    -127 - 1 &= [1000 0001]_{补} + [1111 1111]_{补} \\
+            &= [1000 0000]_{补}\\
+            &= -128
+\end{aligned}</script><p>上面的公式第二行由于进位被截断，所以表示出来就是原码的<code>-0</code>，在补码中被定义为<code>-128</code>。</p>
+<h4 id="深入补码"><a href="#深入补码" class="headerlink" title="深入补码"></a>深入补码</h4><p>接下来我们考虑这样一个事情，为什么计算机的有符号计算普遍使用补码？<br>我们考虑3位编码的情况：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>二进制表示</th>
+<th>原码</th>
+<th>原码%8</th>
+<th>反码</th>
+<th>反码%8</th>
+<th>补码</th>
+<th>补码%8</th>
+<th>实际值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>000</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>001</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>010</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>011</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>100</td>
+<td>0</td>
+<td>0</td>
+<td>-3</td>
+<td>5</td>
+<td>-4</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>101</td>
+<td>-1</td>
+<td>7</td>
+<td>-2</td>
+<td>6</td>
+<td>-3</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>110</td>
+<td>-2</td>
+<td>6</td>
+<td>-1</td>
+<td>7</td>
+<td>-2</td>
+<td>6</td>
+<td>6</td>
+</tr>
+<tr>
+<td>111</td>
+<td>-3</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+<td>-1</td>
+<td>7</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>可以发现，补码在<strong>模运算</strong>上有优秀的数学本质。补码的模$2^n$(n为编码位数)和二进制表示的实际值统一。<br>在数学意义上，加减法就统一为模加法：</p>
+<script type="math/tex; mode=display">A-B \equiv A + (2^N - B) \equiv A - B (mod 2^N)</script><p>在硬件实现上，可以直接丢弃溢出位（即自动取模），无需区分正负符号位。</p>
+<h3 id="小数的编码"><a href="#小数的编码" class="headerlink" title="小数的编码"></a>小数的编码</h3><h3 id="定点数的编码"><a href="#定点数的编码" class="headerlink" title="定点数的编码"></a>定点数的编码</h3><p>顾名思义，定点数，是小数点位置确定的数，笔者没有看到一个关于定点数实现的公认标准方法。以下只是总结其他人的定点数实现，定点数虽然精确，但运算速度和表示精度上远不及浮点数，一般会在一些对计算结果精度要求严格的业务下使用。<br>使用定点数的场景下需要事先约定好小数点位置，以及小数的表示方式。比如在8位精度下，约定前4位使用4位有符号整型表示小数的整数部分及小数正负，后4位使用4位无符号整型表示小数部分。在这种约定下，因为是用整型数表示小数，而4位无符号整型的范围是$[0,15]$，如果用来表示量位精度的小数的话，对于$(0.15,1)$范围内的小数将无法进行表示，所以4位无符号整型只能表示一位精度的小数，即表示[0,9]。<br>除了上述表示方式外，还可以使用标准二进制的方式表示小数部分，如<a href="#数的二进制表示">数的二进制表示</a>所讲的，假设我们有3位可以用来表示小数，那么可以表示的值为：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>二进制表示</th>
+<th>实际值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.000</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td>.001</td>
+<td>0.125</td>
+</tr>
+<tr>
+<td>.010</td>
+<td>0.25</td>
+</tr>
+<tr>
+<td>.011</td>
+<td>0.375</td>
+</tr>
+<tr>
+<td>.100</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>.101</td>
+<td>0.625</td>
+</tr>
+<tr>
+<td>.110</td>
+<td>0.75</td>
+</tr>
+<tr>
+<td>.111</td>
+<td>0.875</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>当然如果按精度看的话，位数一致的前提下，两种方式所能表示的十进制精度是一致的。<br>还有一些语言会使用特殊的算法，用浮点数的形式，模拟定点数的精确性（比如C#语言中的decimal类型），后续有机会会进行介绍。</p>
+<h3 id="移码编码"><a href="#移码编码" class="headerlink" title="移码编码"></a>移码编码</h3><p>在介绍IEEE 754 浮点数标准前，先介绍一下移码编码。<br><strong>移码用于浮点数的阶码，移码是在数X上增加一个偏移量来定义的</strong>,这个偏移量并不恒定，如果机器字长为n，标准偏移量为$2^{n-1}$,但是在IEEE 754标准中，偏移量是$2^{n-1}-1$，这也是移码。下面以标准移码举例。若X是整数，则$X_移=2^{n-1}+X$。以8位格式的移码为例。</p>
+<script type="math/tex; mode=display">114 = [1111 0010]_{移}</script><script type="math/tex; mode=display">-114 = [0000 1110]_{移}</script><script type="math/tex; mode=display">0 = [1000 0000]_{移}</script><script type="math/tex; mode=display">-128 = [0000 0000]_{移}</script><p>这里需要格外说明一点，为什么需要特别创造出一个移码来作为浮点数阶码的编码方式？用补码不行吗？<br>事实上，如果希望自己实现一个新的浮点数类型，用补码代替移码也完全可以。至于为什么IEEE 754使用移码而不是补码，我们首先需要思考，在使用科学计算法进行加减运算时，我们到底是在做什么？<br>首先需要比较阶码大小，然后计算出阶码之间的差值，进行浮点数的对阶（小阶向大阶对齐），然后计算新的尾数。<br>在使用补码的情况下，进行阶码的比较需要格外对符号位进行比较，对阶时计算阶差及补码相减。而在使用移码的情况下，比较器可以直接按无符号数规则进行比较，且计算阶差时，移码相减后偏移量自动抵消，结果即为真值阶差。<br>因此，移码相比于补码在对阶阶段有格外的速度优势，IEEE 754标准因此采用移码作为阶码的编码方式。</p>
+<h3 id="浮点数的编码-IEEE-754"><a href="#浮点数的编码-IEEE-754" class="headerlink" title="浮点数的编码 (IEEE 754)"></a>浮点数的编码 (IEEE 754)</h3><p><a href="#定点数的编码">定点数的编码</a>对于非常大或非常小的数不能有效表示，比如$5\times 2^{100}$或者$5\times2^{-100}$。<br>IEEE 754 浮点数标准用$V=(-1)^s\times M\times 2^{E}$的形式来表示一个数。</p>
+<ul>
+<li>符号（sign）s决定这数是负数（s=1）还是正数（s=0），而对于数值0的符号位解释作为特殊情况处理。</li>
+<li>尾数（significand） M是一个长度为p的$d_0d_1d_2…d_{p-1}$表示的字符串，其中$d_i$取值为0或1。</li>
+<li>阶码（exponent）E的作用是对浮点数加权，这个权重是2的E次幂（可能是负数）。</li>
+</ul>
+<p>下图给出了将这三个字段装进字中的常见格式，分别是32位表示的单精度浮点数和64位表示的双精度浮点数：<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/posts/4203216647/%E6%A0%87%E5%87%86%E6%B5%AE%E7%82%B9%E6%A0%BC%E5%BC%8F.png" class="" title="标准浮点格式"></p>
+<p>根据<code>exp</code>的值，被编码的值可以分成三种不同的情况。如下图所示：<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/posts/4203216647/%E5%8D%95%E7%B2%BE%E5%BA%A6%E6%B5%AE%E7%82%B9%E6%95%B0%E5%80%BC%E7%9A%84%E5%88%86%E7%B1%BB.png" class="" title="单精度浮点数值的分类"><br>可见标准将阶码的最大值（全为1）和最小值（全为0）保留作为特殊用途使用的标记。所以对于一个$w$位的移码，在IEEE 754标准中的偏移值是$2^{w-1}-1$，实际可以表示的范围会比补码$[-(2^{w-1}),2^{w-1}-1]$少最小值两位，即$[-(2^{w-1}-2),2^{w-1}-1]$，下面详细介绍一下图中的数值分类。</p>
+<ul>
+<li><p>情况一：规格化的值<br>这是最普遍的情况。当<code>exp</code>的位模式既不全为0（数值0），也不全为1（单精度数值为255，双精度数值为2047）时，都属于这类情况。在这种情况中，阶码字段被解释为以偏置（$biased$）形式表示的有符号整数。也就是说，阶码的值是$E=e-Bias$，其中$e$是无符号数，而$Bias = 2^{k-1}-1$的偏置值，即偏移量为$Bias$的移码。由此产生指数的取值范围，对于单精度是$[-126,+127]$，而对于双精度是$[-1022,+1023]$。<br>小数字段<code>frac</code>被解释为描述小数值$f$，其中$0\leq f&lt;1$，其二进制表示为$0.f_{n-1}…f_1f_0$，也就是二进制小数点在最高有效位的左边。尾数定义为$M=1+f$。有时，这种方式也叫做隐含的以1开头的（implied leading 1）表示，因为我们可以把$M$看成一个二进制表达式为$1.f_{n-1}f_{n-2}…f_0$的数字。既然我们总是能够调整阶码$E$，使得尾数$M$在范围$1\leq M&lt;2$之中（假设没有溢出），那么这种表示方法是一种轻松获得一个额外精度位的技巧。既然第一位总是等于1，那么我们就不需要显式地表示它。</p>
+</li>
+<li><p>情况二：非规格化的值<br>当阶码域为全0时，所表示的数是非规格化形式。在这种情况下，<strong>阶码值是$E=1-Bias$其中$Bias$是一个等于$2^{k-1}-1$的值</strong>（移码的偏移量大小），而尾数的值是$M=f$，也就是小数字段的值，不包含隐含的开头的1。<br>非规格化数有两个用途。</p>
+<ol>
+<li>它们提供了一种表示数值0的方法，因为使用规格化数，我们必须总是使$M≥1$，因此我们就不能表示0。实际上，$+0.0$的浮点表示的位模式为全0：符号位是0，阶码字段全为0（表明是一个非规格化值），而小数域也全为0，这就得到$M=f=0$。令人奇怪的是，当符号位为1，而其他域全为0时，我们得到值$-0.0$。根据IEEE的浮点格式，值$+0.0$和$-0.0$在某些方面被认为是不同的，而在其他方面是相同的。</li>
+<li>非规格化数的另外一个功能是表示那些非常接近于$0.0$的数。它们提供了一种属性，称为逐渐溢出（gradual underflow），其中，可能的数值分布均匀地接近于$0.0$。</li>
+</ol>
+</li>
+<li><p>情况三：特殊值<br>最后一类数值是当指阶码全为1的时候出现的。当小数域全为0时，得到的值表示无穷，当符号位$s=0$时是$+\infty$，或者当$s=1$时是$+\infty$。当我们把两个非常大的数相乘，或者除以零时，无穷能够表示溢出的结果。当小数域为非零时，结果值被称为”$NaN$”，即不是一个数（Not a Number）的缩写。一些运算的结果不能是实数或无穷，就会返回这样的$NaN$值，比如当计算$\sqrt{-1}$或$\infty - \infty$时。在某些应用中，表示未初始化的数据时，它们也很有用处。<br>所有浮点操作都应该支持两种不同的NaN：sNaN和qNaN。sNaN提供不属于 IEEE 754 标准规定范围的未初始化变量的表示以及算术增强（例如无穷的复杂映射或者极宽的表示范围）；qNaN应该由实现者自行决定提供从无效或不可用数据和结果带来的回溯诊断信息。为了方便传播NaN中包含的诊断信息，应该尽可能多地预先准备这些信息。<br>在二进制编码中，NaN的符号位S为0或1，阶码E的所有位设为1。qNaN尾数T的第一位(d1)为1，sNaN尾数T的第一位为0。如果尾数T的第一位为0，则尾数T的其他一些位必须非零，以区分NaN和无穷大。sNaN变为qNaN时应该将尾数T的第一位d1设置为1，尾数T的剩余位不变，因为尾数T的剩余位的负载可能包含着诊断信息。</p>
+</li>
+</ul>
+<p>现在我们假设一个8位浮点数格式来举例，其中有4位阶码、3位小数位还有1位符号位。<br>对于非规格化数：</p>
+<script type="math/tex; mode=display">[0 0000 000]_f = 2^{-6} \times 0 = 0.0</script><script type="math/tex; mode=display">[0 0000 001]_f = 2^{-6} \times 2^{-3} = 0.001953125</script><script type="math/tex; mode=display">[1 0000 111]_f = -1 \times 2^{-6} \times (2^{-1}+2^{-2}+2^{-3}) = -0.013671875</script><p>可以看到，对于非规格化数而言，阶码就是$1-Bias = 1 - (2^{4-1}-1) = -6$，而且不会执行隐含1的开头优化，尾数就是小数点后的数。<br>对于规格化数：</p>
+<script type="math/tex; mode=display">[0 0001 000]_f = 2^{-6} \times 1 = 0.015625</script><script type="math/tex; mode=display">[0 0110 110]_f = 2^{-1} \times (1+2^{-1}+2^{-2})=0.875</script><script type="math/tex; mode=display">[0 0111 000]_f = 2^{0} \times 1 = 1</script><script type="math/tex; mode=display">[0 1110 111]_f = 2^{7} \times (1+2^{-1}+2^{-2}+2^{-3})=240.0</script><p>对于无穷大数：</p>
+<script type="math/tex; mode=display">[0 1111 000]_f = \infty</script><h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ol>
+<li>《深入理解计算机系统（第三版）》兰德尔E.布莱恩特、大卫R.奥哈拉伦</li>
+<li>《计算机组成原理（第七版）》戴志涛、白中英</li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/118432554">《原码、反码、补码》</a></li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io">Lenzo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io/posts/4203216647/">https://lenzo15.github.io/posts/4203216647/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lenzo15.github.io" target="_blank">Lenzo's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E4%BA%8C%E8%BF%9B%E5%88%B6/">二进制</a><a class="post-meta__tags" href="/tags/%E7%BC%96%E7%A0%81/">编码</a><a class="post-meta__tags" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90/">计算机组成</a></div><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/343241564/" title="游戏中的网络通讯（六）浮点数确定性"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">游戏中的网络通讯（六）浮点数确定性</div></div><div class="info-2"><div class="info-item-1">以下都是在IEEE 754-2019浮点数标准下探讨，按其他标准设计的浮点数不在探讨范围中。IEEE 754相关内容在浮点数的编码 (IEEE 754)中详细介绍。我常常在各种技术文章里看到类似，说由于浮点数精度原因，在网络同步中不会使用浮点数，转而会使用定点数代替浮点数的说法。因此，本文对浮点数的确定性问题进行详细探讨。 IEEE 754规定了五种浮点基本格式：  三种二进制格式，编码长度分别为32/64/128 bits 两种十进制格式，编码长度分别为64/128 bits  其中，大部分编译器实现了符合标准的单精度浮点数和双精度浮点数（32位和64位二进制浮点格式）。以c++举例，有、、三种基础浮点类型。其中的可移植性最差。有些系统不直接支持，在这些系统上，它的大小与类型相同。比如 在 MSVC 下是 64 位，在 GCC/Clang 下是 80 位。设备的字节序也会影响浮点数的解析，如x86为小端序，PowerPC为大端序。若不显式处理，跨设备传输二进制浮点数据时会发生解析错误。 可见，对于实现了IEEE 754标准的编译器而言，基本可以保证浮点数编码的统一性。浮点数真正...</div></div></div></a><a class="pagination-related" href="/posts/3900935936/" title="游戏中的网络通讯（五）网络同步方案概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">游戏中的网络通讯（五）网络同步方案概览</div></div><div class="info-2"><div class="info-item-1">同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。具体来说，网络同步有多个重要目的：  为了保持游戏状态的一致性。比如在MMO游戏中，当一个玩家击败怪物获得宝物时，其他玩家需要立即知道这件事，否则就会出现两个玩家都以为自己获得了宝物的混乱局面。这种一致性体现在位置、生命值、物品状态等多个方面。 为了提供流畅的游戏体验。网络延迟是不可避免的，同步技术如客户端预测可以让玩家在等待服务器响应时也能有流畅的操作体验。如果同步不好，玩家会遇到角色瞬移、动作延迟等问题。 防止作弊。服务器通过权威验证可以防止玩家篡改本地客户端数据作弊。如果客户端可以随意修改状态而不被服务器检查，游戏就很容易被破解。 优化性能。通过差异化同步等技术，只传输变化的数据而不是完整状态，可...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/850070085/" title="快速平方根倒数算法"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-01</div><div class="info-item-2">快速平方根倒数算法</div></div><div class="info-2"><div class="info-item-1">先直接给出著名的快速平方根导数算法：函数中最核心的代码就四行下面详细说明一下这四行。  将浮点数 y 的32位IEEE 754表示直接视为整数。对于规格化的正浮点数$x$有： x = (1+2^{-23}M)2^E其中M为尾数，E为阶码，将其转化为的整数$I_x$的值为公式（1）：  I_x=M+2^{23}(E+2^7-1)这里因为阶码E是移码形式编码，且偏移值是$2^7-1$，所以后面需要加上这部分偏移值。这行代码就是让$i=I_x$。  我们设需要求的平方根导数为$y$，则有$y=\frac{1}{\sqrt{x}}$。两边取对数，得 \log_2{y} = -\frac{1}{2}\log_2x将浮点数格式代入，得 \log_2{y} = -\frac{1}{2}\log_2{((1+2^{-23}M)2^E)}整理得 \log_2{y} = -\frac{1}{2}[\log_2{(1+2^{-23}M)}+E]对于函数$f(x)=\log_2{(1+x)}$，根据在0点的泰勒展开式，有 f(x) = \log_2{(1+x)}=0+f^{'}(0)+R_1(x) \a...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Lenzo</div><div class="author-info-description">Viva los artistas y su amor!</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/lenzo15"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lenzo15" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:lenzo@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E7%9A%84%E4%BA%8C%E8%BF%9B%E5%88%B6%E8%A1%A8%E7%A4%BA"><span class="toc-number">1.</span> <span class="toc-text">数的二进制表示</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E7%9A%84%E6%9C%BA%E6%A2%B0%E7%A0%81%E7%BC%96%E7%A0%81"><span class="toc-number">2.</span> <span class="toc-text">数的机械码编码</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%97%A0%E7%AC%A6%E5%8F%B7%E6%95%B4%E6%95%B0%E7%9A%84%E7%BC%96%E7%A0%81"><span class="toc-number">2.1.</span> <span class="toc-text">无符号整数的编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E7%AC%A6%E5%8F%B7%E6%95%B4%E6%95%B0%E7%9A%84%E7%BC%96%E7%A0%81"><span class="toc-number">2.2.</span> <span class="toc-text">有符号整数的编码</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8E%9F%E7%A0%81%E7%BC%96%E7%A0%81"><span class="toc-number">2.2.1.</span> <span class="toc-text">原码编码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%8D%E7%A0%81%E7%BC%96%E7%A0%81"><span class="toc-number">2.2.2.</span> <span class="toc-text">反码编码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%A1%A5%E7%A0%81%E7%BC%96%E7%A0%81"><span class="toc-number">2.2.3.</span> <span class="toc-text">补码编码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B7%B1%E5%85%A5%E8%A1%A5%E7%A0%81"><span class="toc-number">2.2.4.</span> <span class="toc-text">深入补码</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%8F%E6%95%B0%E7%9A%84%E7%BC%96%E7%A0%81"><span class="toc-number">2.3.</span> <span class="toc-text">小数的编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E7%9A%84%E7%BC%96%E7%A0%81"><span class="toc-number">2.4.</span> <span class="toc-text">定点数的编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A7%BB%E7%A0%81%E7%BC%96%E7%A0%81"><span class="toc-number">2.5.</span> <span class="toc-text">移码编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B5%AE%E7%82%B9%E6%95%B0%E7%9A%84%E7%BC%96%E7%A0%81-IEEE-754"><span class="toc-number">2.6.</span> <span class="toc-text">浮点数的编码 (IEEE 754)</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">3.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术">游戏中的网络通信（八）网络同步预表现技术</a><time datetime="2025-09-15T14:52:15.000Z" title="发表于 2025-09-15 22:52:15">2025-09-15</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2274644961/" title="最小生成树算法">最小生成树算法</a><time datetime="2025-09-12T12:11:13.000Z" title="发表于 2025-09-12 20:11:13">2025-09-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/3306641566/" title="并查集">并查集</a><time datetime="2025-09-11T14:09:01.000Z" title="发表于 2025-09-11 22:09:01">2025-09-11</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现">游戏中的网络通信（七）高性能定点数实现</a><time datetime="2025-09-01T11:23:26.000Z" title="发表于 2025-09-01 19:23:26">2025-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/850070085/" title="快速平方根倒数算法">快速平方根倒数算法</a><time datetime="2025-09-01T10:28:05.000Z" title="发表于 2025-09-01 18:28:05">2025-09-01</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Lenzo</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.0.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const loadMathjax = () => {
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'all',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+          renderActions: {
+            findScript: [10, doc => {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/)
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+                const text = document.createTextNode('')
+                node.parentNode.replaceChild(text, node)
+                math.start = {node: text, delim: '', n: 0}
+                math.end = {node: text, delim: '', n: 0}
+                doc.math.push(math)
+              }
+            }, '']
+          }
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.startup.document.state(0)
+      MathJax.texReset()
+      MathJax.typesetPromise()
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>游戏中的网络通信（七）高性能定点数实现 | Lenzo's Blog</title><meta name="author" content="Lenzo"><meta name="copyright" content="Lenzo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="概览本文参考《腾讯游戏开发精粹》高性能的定点数实现方案，是该文的读书笔记和实践记录。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="游戏中的网络通信（七）高性能定点数实现">
+<meta property="og:url" content="https://lenzo15.github.io/posts/1154970394/index.html">
+<meta property="og:site_name" content="Lenzo&#39;s Blog">
+<meta property="og:description" content="概览本文参考《腾讯游戏开发精粹》高性能的定点数实现方案，是该文的读书笔记和实践记录。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lenzo15.github.io/img/butterfly-icon.png">
+<meta property="article:published_time" content="2025-09-01T11:23:26.000Z">
+<meta property="article:modified_time" content="2025-09-27T12:19:43.052Z">
+<meta property="article:author" content="Lenzo">
+<meta property="article:tag" content="定点数">
+<meta property="article:tag" content="帧同步">
+<meta property="article:tag" content="网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lenzo15.github.io/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "游戏中的网络通信（七）高性能定点数实现",
+  "url": "https://lenzo15.github.io/posts/1154970394/",
+  "image": "https://lenzo15.github.io/img/butterfly-icon.png",
+  "datePublished": "2025-09-01T11:23:26.000Z",
+  "dateModified": "2025-09-27T12:19:43.052Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Lenzo",
+      "url": "https://lenzo15.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/butterfly-icon.png"><link rel="canonical" href="https://lenzo15.github.io/posts/1154970394/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'https://github.com/francoischalifour/medium-zoom',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '游戏中的网络通信（七）高性能定点数实现',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.0.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/lenzo_top_img.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Lenzo's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">游戏中的网络通信（七）高性能定点数实现</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">游戏中的网络通信（七）高性能定点数实现</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-09-01T11:23:26.000Z" title="发表于 2025-09-01 19:23:26">2025-09-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-09-27T12:19:43.052Z" title="更新于 2025-09-27 20:19:43">2025-09-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/">网络通信</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%90%8C%E6%AD%A5/">网络同步</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>本文参考《腾讯游戏开发精粹》高性能的定点数实现方案，是该文的读书笔记和实践记录。<br><span id="more"></span></p>
+<h2 id="定点数结构"><a href="#定点数结构" class="headerlink" title="定点数结构"></a>定点数结构</h2><p>文章基于64位整型数实现定点数方案，约定第0-31位为小数部分，32-62位为整数部分，第63位为符号位，即32位有符号整数，32位小数。<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/posts/1154970394/64%E4%BD%8D%E5%AE%9A%E7%82%B9%E6%95%B0%E7%9A%84%E7%BB%93%E6%9E%84.png" class="" title="64位定点数的结构"><br>该方案能表示的范围为：</p>
+<script type="math/tex; mode=display">[-2^{32},2^{31}-2^{-32}]</script><p>精度为：</p>
+<script type="math/tex; mode=display">\frac{1}{2^{32}} = 2.3283064365386963\times10^{-10}</script><p>在数学上，把整数的二进制表示中较低的$n$位视为小数部分，那么一个整数的二进制形式表示的定点数值其实就是这个整数值除以$2^n$。设$a$为定点数，$f(a)$为这个定点数对应的整数值，即$f(a)$是一个整数，$a$是它所表示的定点数，那么有</p>
+<script type="math/tex; mode=display">a=2^{-n}f(a)</script><p>不同项目可以根据自己实际情况，按所需精度来确定小数位数。</p>
+<h2 id="定点数四则运算"><a href="#定点数四则运算" class="headerlink" title="定点数四则运算"></a>定点数四则运算</h2><h3 id="定点数加减法"><a href="#定点数加减法" class="headerlink" title="定点数加减法"></a>定点数加减法</h3><p>浮点数的加减需要先对齐阶码（相当对齐小数点）​，然后再相加减。而定点数的小数点是对齐的，可以直接使用对应的整数的加减法。</p>
+<h3 id="定点数乘法"><a href="#定点数乘法" class="headerlink" title="定点数乘法"></a>定点数乘法</h3><p>浮点数的乘法是通过整数部分相乘、阶码相加实现的。<br>对于64位定点数，需要实现了一个双倍宽度（128位）的有符号整数的乘法运算。<br>对于64位<code>GCC</code>编译器，可以直接使用<code>_int128_t</code><br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">_int64_t</span> value = (<span class="type">_int128_t</span>(a) ＊ b) ＞＞ <span class="number">32</span>;</span><br></pre></td></tr></table></figure><br>如果没有原生支持的接口，则需要自己实现将倍精度运算分解为一系列单精度运算。即用 64 位整型去实现 128 位整型，如下GCC实现函数。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 输入​​：两个双字整数（各由 (l1, h1) 和 (l2, h2) 表示，其中 l 是低有效位，h 是高有效位）。</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ​​输出​​：</span></span><br><span class="line"><span class="comment">// (lv, hv)：乘积的低位双字（64位）。</span></span><br><span class="line"><span class="comment">// (lw, hw)：乘积的高位双字（64位），若 lw == NULL 则忽略。</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ​​返回值​​：1 表示溢出，0 表示未溢出。</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ​​参数 unsigned_p​​：true 表示无符号乘法，false 表示有符号乘法。</span></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span></span></span><br><span class="line"><span class="function"><span class="title">mul_double_wide_with_sign</span> <span class="params">(<span class="type">unsigned</span> HOST_WIDE_INT l1, HOST_WIDE_INT h1,</span></span></span><br><span class="line"><span class="params"><span class="function">			   <span class="type">unsigned</span> HOST_WIDE_INT l2, HOST_WIDE_INT h2,</span></span></span><br><span class="line"><span class="params"><span class="function">			   <span class="type">unsigned</span> HOST_WIDE_INT *lv, HOST_WIDE_INT *hv,</span></span></span><br><span class="line"><span class="params"><span class="function">			   <span class="type">unsigned</span> HOST_WIDE_INT *lw, HOST_WIDE_INT *hw,</span></span></span><br><span class="line"><span class="params"><span class="function">			   <span class="type">bool</span> unsigned_p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  HOST_WIDE_INT arg1[<span class="number">4</span>];</span><br><span class="line">  HOST_WIDE_INT arg2[<span class="number">4</span>];</span><br><span class="line">  HOST_WIDE_INT prod[<span class="number">4</span> * <span class="number">2</span>];</span><br><span class="line">  <span class="type">unsigned</span> HOST_WIDE_INT carry;</span><br><span class="line">  <span class="type">int</span> i, j, k;</span><br><span class="line">  <span class="type">unsigned</span> HOST_WIDE_INT neglow;</span><br><span class="line">  HOST_WIDE_INT neghigh;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">encode</span> (arg1, l1, h1);</span><br><span class="line">  <span class="built_in">encode</span> (arg2, l2, h2);</span><br><span class="line">  <span class="comment">// 将输入的64位整数拆分为4个16位块（假设 HOST_WIDE_INT 为16位），存储到数组 arg1[4] 和 arg2[4] 中。</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">memset</span> (prod, <span class="number">0</span>, <span class="keyword">sizeof</span> prod);</span><br><span class="line"> <span class="comment">// 模拟小学乘法（竖式计算），逐位相乘并累加进位。</span></span><br><span class="line"> <span class="comment">// LOWPART(x)：取 x 的低16位（如 x &amp; 0xFFFF）。</span></span><br><span class="line"> <span class="comment">// HIGHPART(x)：取 x 的高16位（如 x &gt;&gt; 16）。</span></span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">      carry = <span class="number">0</span>;</span><br><span class="line">      <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; <span class="number">4</span>; j++)</span><br><span class="line">	&#123;</span><br><span class="line">	  k = i + j;</span><br><span class="line">	  <span class="comment">/* This product is &lt;= 0xFFFE0001, the sum &lt;= 0xFFFF0000.  */</span></span><br><span class="line">	  carry += (<span class="type">unsigned</span> HOST_WIDE_INT) arg1[i] * arg2[j]; <span class="comment">// // 计算乘积</span></span><br><span class="line">	  <span class="comment">/* Since prod[p] &lt; 0xFFFF, this sum &lt;= 0xFFFFFFFF.  */</span></span><br><span class="line">	  carry += prod[k]; <span class="comment">// 累加之前的进位</span></span><br><span class="line">	  prod[k] = <span class="built_in">LOWPART</span> (carry); <span class="comment">// 存储低16位</span></span><br><span class="line">	  carry = <span class="built_in">HIGHPART</span> (carry);  <span class="comment">// 进位到高16位</span></span><br><span class="line">	&#125;</span><br><span class="line">      prod[i + <span class="number">4</span>] = carry; <span class="comment">// 存储剩余进位</span></span><br><span class="line">    &#125;</span><br><span class="line">  <span class="comment">// decode 将4个16位块组合回64位整数（(lv, hv) 和 (lw, hw)）。</span></span><br><span class="line">  <span class="built_in">decode</span> (prod, lv, hv);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* We are not interested in the wide part nor in overflow.  */</span></span><br><span class="line">  <span class="keyword">if</span> (lw == <span class="literal">NULL</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">decode</span> (prod + <span class="number">4</span>, lw, hw);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Unsigned overflow is immediate.  */</span></span><br><span class="line">  <span class="comment">// 无符号乘法溢出检测</span></span><br><span class="line">  <span class="keyword">if</span> (unsigned_p)</span><br><span class="line">    <span class="keyword">return</span> (*lw | *hw) != <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Check for signed overflow by calculating the signed representation of the</span></span><br><span class="line"><span class="comment">     top half of the result; it should agree with the low half&#x27;s sign bit.  */</span></span><br><span class="line">    <span class="comment">// 符号修正​​：</span></span><br><span class="line">    <span class="comment">// 若输入为负数（h1 &lt; 0 或 h2 &lt; 0），需将高位部分加上另一个操作数的补码修正（模拟有符号乘法规则）。</span></span><br><span class="line">​    <span class="comment">// ​溢出判断​​：</span></span><br><span class="line">    <span class="comment">// 若结果低位为负（*hv &lt; 0），则高位应为全1（补码符号扩展），即检查 ~(*lw &amp; *hw) != 0。</span></span><br><span class="line">    <span class="comment">// 若结果低位非负（*hv &gt;= 0），则高位应为全0，即检查 *lw | *hw != 0。</span></span><br><span class="line">  <span class="keyword">if</span> (h1 &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="built_in">neg_double</span> (l2, h2, &amp;neglow, &amp;neghigh);</span><br><span class="line">      <span class="built_in">add_double</span> (neglow, neghigh, *lw, *hw, lw, hw);</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="keyword">if</span> (h2 &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="built_in">neg_double</span> (l1, h1, &amp;neglow, &amp;neghigh);</span><br><span class="line">      <span class="built_in">add_double</span> (neglow, neghigh, *lw, *hw, lw, hw);</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="keyword">return</span> (*hv &lt; <span class="number">0</span> ? ~(*lw &amp; *hw) : *lw | *hw) != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="除法"><a href="#除法" class="headerlink" title="除法"></a>除法</h3><p>两个定点数$a$和$b$的商可以表示为：</p>
+<script type="math/tex; mode=display">\frac{a}{b} = \frac{2^{-n}f(a)}{2^{-n}f(b)} = 2^{-n}(2^{n}\frac{f(a)}{f(b)})</script><p>所以做除法运算需要乘以$2^{32}$，为避免溢出也需要引入128位的运算。除了类似乘法一样在C++层面实现128位除法外，书中还提供了一种汇编实现的128位除法。<br>在c++中声明：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> std::<span class="type">int64_t</span> _Div128_64(</span><br><span class="line">    std::<span class="type">int64_t</span>    a_low,</span><br><span class="line">    std::<span class="type">int64_t</span>    a_high,</span><br><span class="line">    std::<span class="type">int64_t</span>    b,</span><br><span class="line">    std::<span class="type">int64_t</span>＊   ret );</span><br></pre></td></tr></table></figure><br>把a_low的值传给寄存器rcx，把a_high的值传给rdx，把b的值传给r8，把ret的指针传给r9。<br><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">.code</span><br><span class="line">Div128_64 proc</span><br><span class="line">    mov rax, rcx     ; 将a_low的值由rcx传给rax</span><br><span class="line">    idiv r8          ; rdx - rax(128位被除数) / r8(除数) = rdx(余数), rax(商)</span><br><span class="line">    mov[r9], rdx     ; 通过指针传出余数</span><br><span class="line">    ret              ; 返回商</span><br><span class="line">ret;</span><br><span class="line">Div128_64 endp</span><br><span class="line">END</span><br></pre></td></tr></table></figure><br>但是因为不同CPU上的指令集是不同的，上述方法需要自己维护一套跨平台的算法库。</p>
+<h2 id="定点数开方与超越函数"><a href="#定点数开方与超越函数" class="headerlink" title="定点数开方与超越函数"></a>定点数开方与超越函数</h2><h3 id="多项式拟合"><a href="#多项式拟合" class="headerlink" title="多项式拟合"></a>多项式拟合</h3><p>对于函数$f(x)$，在满足相关条件的情况下，可以使用泰勒展开式进行多项式拟合。<br>若函数$f(x)$在包含$x_0$的某个闭区间$[a,b]$上具有$n$阶导数，且在开区间$(a,b)$上具有$n+1$阶导数，则对闭区间$[a,b]$上任意一点x，成立下式：</p>
+<script type="math/tex; mode=display">
+f(x)=\sum_{k=0}^{n} \frac{f^{(k)}(x_0)}{k!}\,(x-x_0)^k + R_{n}(x)</script><p>其中$f^{(n)}(x)$表示$f(x)$的$n$阶导数，剩余的$R_{n}(x)$是泰勒公式的余项，是$(x-x_0)^n$的高阶无穷小。它可以写成多种形式，比如拉格朗日余项公式：</p>
+<script type="math/tex; mode=display">
+R_n(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}(x-x_0)^{n+1}, \xi \in [x,x_0] \space or \space \xi \in[x_0,x]</script><p>所以截取泰勒展开式前$n+1$项，与实际值的误差即是拉格朗日余项。</p>
+<p>文章采用离线计算的方式，找出一个函数$P_n(x)$，使得在区间$[a,b]$上，最大误差的绝对值最小。简单的说，就是求这个多项式就是求原函数在指定区间上的最佳逼近。就是如果要求的点落在这个区间以外，那么就要利用函数的性质转换成这个区间内的点。<br>文章以对$e^x$函数在$[0,1]$区间上的拟合为例子。<br>通过数学软件Mathematica计算得到：</p>
+<script type="math/tex; mode=display">e^x \approx 1.17974+0.380661x+1.32348x^2-0.350357x^3+0.184801x^4</script><h3 id="正弦余弦"><a href="#正弦余弦" class="headerlink" title="正弦余弦"></a>正弦余弦</h3><p>文章利用正弦余弦的周期性和对称性，把平面按$45\degree$为一块分成了8块。所以一般角度$x$的求解公式为：</p>
+<script type="math/tex; mode=display">x=k\frac{\pi}{4}+x_1,k\in\mathbb{Z},k\in[0,7],x_1\in[0,\frac{\pi}{4})</script><p>因此，我们需要确认角度的终边落在哪一块。接下来就是求解终边和最近的坐标轴所在直线的夹角的正弦值和余弦值，再转换为我们要求解的角度的正弦值和余弦值。<br>这里记角的终边和最近的坐标轴所在直线的夹角为$\theta$。如果$k$是偶数，那么$\theta=x_1$；如果$k$是奇数，那么$\theta=\frac{\pi}{4}-x_1$。我们<strong>利用拟合多项式求出$\frac{\theta}{2}$的正弦值和余弦值</strong>，再利用二倍角公式得到$\sin\theta$, $\cos\theta$：</p>
+<script type="math/tex; mode=display">
+\sin\theta = 2\sin\frac{\theta}{2}\cos\frac{\theta}{2} \\
+\cos\theta = 1 - 2\sin^2\frac{\theta}{2} = 2\cos^2\frac{\theta}{2}-1</script><p>然后根据角的终边所在的位置，我们就可以得到所要求的三角函数和$\sin\theta$, $\cos\theta$之间的关系。</p>
+<h4 id="具体算法"><a href="#具体算法" class="headerlink" title="具体算法"></a>具体算法</h4><ol>
+<li>角度归一化：将输入角度$x$归一到区间$[0,2\pi)$，记$\alpha=x\bmod 2\pi$。</li>
+<li>扇区划分：令$k=\left\lfloor \alpha/(\pi/4) \right\rfloor\ (\bmod\ 8)$，并令$x_1=\alpha-k\cdot\frac{\pi}{4}$，其中$x_1\in[0,\frac{\pi}{4})$。</li>
+<li>参考角选择：若$k$为偶数，$\theta=x_1$；若$k$为奇数，$\theta=\frac{\pi}{4}-x_1$。</li>
+<li>半角近似：令$h=\theta/2$，使用离线拟合的多项式$P<em>{\sin}(h)$、$P</em>{\cos}(h)$近似$\sin h$、$\cos h$。</li>
+<li>二倍角恢复：$\sin\theta=2\sin h\cos h$，$\cos\theta=1-2\sin^2 h$（或$2\cos^2 h-1$）。</li>
+<li>扇区还原：按$k\in[0,7]$将$\sin\theta,\cos\theta$还原为$\sin x,\cos x$：<ul>
+<li>$k=0$: $\sin x=+\sin\theta,\ \cos x=+\cos\theta$</li>
+<li>$k=1$: $\sin x=\cos\theta,\ \cos x=\sin\theta$</li>
+<li>$k=2$: $\sin x=\cos\theta,\ \cos x=-\sin\theta$</li>
+<li>$k=3$: $\sin x=\sin\theta,\ \cos x=-\cos\theta$</li>
+<li>$k=4$: $\sin x=-\sin\theta,\ \cos x=-\cos\theta$</li>
+<li>$k=5$: $\sin x=-\cos\theta,\ \cos x=-\sin\theta$</li>
+<li>$k=6$: $\sin x=-\cos\theta,\ \cos x=+\sin\theta$</li>
+<li>$k=7$: $\sin x=-\sin\theta,\ \cos x=+\cos\theta$</li>
+</ul>
+</li>
+</ol>
+<p>以下是关键实现代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdint.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="type">int64_t</span> fx;            <span class="comment">// Q32.32 定点数</span></span><br><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="type">int</span> FRAC_BITS = <span class="number">32</span>;</span><br><span class="line"><span class="type">static</span> <span class="type">const</span> fx FX_ONE = (fx)<span class="number">1</span> &lt;&lt; FRAC_BITS;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 基础运算</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">fx_from_int</span><span class="params">(<span class="type">int32_t</span> i)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int32_t</span> <span class="title function_">fx_to_int</span><span class="params">(fx a)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">fx_mul</span><span class="params">(fx a, fx b)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">fx_div</span><span class="params">(fx a, fx b)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">fx_abs</span><span class="params">(fx a)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">fx_mod</span><span class="params">(fx a, fx m)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 多项式拟合</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">psin_half</span><span class="params">(fx h)</span>;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> fx <span class="title function_">pcos_half</span><span class="params">(fx h)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 主函数：输入/输出均为 Q32.32（弧度）</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">fast_sin_cos_q32</span><span class="params">(fx x, fx* out_sin, fx* out_cos)</span> &#123;</span><br><span class="line">  <span class="comment">// 1) 归一化到 [0, 2π)</span></span><br><span class="line">  fx a = fx_mod(x, TWO_PI);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 2) 扇区划分与 x1</span></span><br><span class="line">  <span class="type">int</span> k = (<span class="type">int</span>)(a / QUARTER_PI) &amp; <span class="number">7</span>;           <span class="comment">// 0..7</span></span><br><span class="line">  fx x1 = a - (fx)k * QUARTER_PI;              <span class="comment">// x1 ∈ [0, π/4)</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 3) 参考角 θ 以及半角 h</span></span><br><span class="line">  fx theta = (k % <span class="number">2</span> == <span class="number">0</span>) ? x1 : (QUARTER_PI - x1);</span><br><span class="line">  fx h = theta &gt;&gt; <span class="number">1</span>;                           <span class="comment">// θ/2</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 4) 近似 sin(h), cos(h)</span></span><br><span class="line">  fx s_h = psin_half(h);</span><br><span class="line">  fx c_h = pcos_half(h);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 5) 二倍角：sinθ = 2*s_h*c_h，cosθ = 1 - 2*s_h^2</span></span><br><span class="line">  fx <span class="type">s_t</span> = (fx)( ( (__int128)<span class="number">2</span> * s_h * c_h ) &gt;&gt; FRAC_BITS );</span><br><span class="line">  fx s_h_sq = fx_mul(s_h, s_h);</span><br><span class="line">  fx <span class="type">c_t</span> = FX_ONE - (fx)( ( (__int128)<span class="number">2</span> * s_h_sq ) &gt;&gt; FRAC_BITS );</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 6) 扇区还原到 sin(x), cos(x)</span></span><br><span class="line">  <span class="keyword">switch</span> (k) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">0</span>: *out_sin = +<span class="type">s_t</span>; *out_cos = +<span class="type">c_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">1</span>: *out_sin = +<span class="type">c_t</span>; *out_cos = +<span class="type">s_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">2</span>: *out_sin = +<span class="type">c_t</span>; *out_cos = -<span class="type">s_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">3</span>: *out_sin = +<span class="type">s_t</span>; *out_cos = -<span class="type">c_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">4</span>: *out_sin = -<span class="type">s_t</span>; *out_cos = -<span class="type">c_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">5</span>: *out_sin = -<span class="type">c_t</span>; *out_cos = -<span class="type">s_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">6</span>: *out_sin = -<span class="type">c_t</span>; *out_cos = +<span class="type">s_t</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">default</span>: *out_sin = -<span class="type">s_t</span>; *out_cos = +<span class="type">c_t</span>; <span class="keyword">break</span>; <span class="comment">// k == 7</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="指数函数"><a href="#指数函数" class="headerlink" title="指数函数"></a>指数函数</h3><p>文章将指数函数的输入$x$值拆分成整数部分和小数部分。</p>
+<script type="math/tex; mode=display">x=[x]+\{x\}</script><p>以$e^x$函数为例，有：</p>
+<script type="math/tex; mode=display">e^x=e^{[x]}e^{\{x\}}</script><p>其中，$e$是e的整数次方，很容易求解。而{x}属于[0,1]区间，在这个区间范围内指数函数可以方便地用多项式拟合。</p>
+<h3 id="对数函数"><a href="#对数函数" class="headerlink" title="对数函数"></a>对数函数</h3><p>文章使用换底公式将一般对数转换为以2为底的对数形式：</p>
+<script type="math/tex; mode=display">\log_mx=\frac{\log_2{x}}{\log_2m}</script><p>其中x可约化为</p>
+<script type="math/tex; mode=display">x=2^ny,n\in\mathbb{Z},y\in[0,1)</script><p>则</p>
+<script type="math/tex; mode=display">\log_2x=n+\log_2y</script><p>因为这里的定点数是基于整数的二进制实现的，所以知道最高位的1的位置就可以求出n。余下的部分可以用拟合多项式求解。</p>
+<h3 id="开方运算"><a href="#开方运算" class="headerlink" title="开方运算"></a>开方运算</h3><p>文章介绍了四种开方运算方式，分别是：</p>
+<h4 id="牛顿迭代法"><a href="#牛顿迭代法" class="headerlink" title="牛顿迭代法"></a>牛顿迭代法</h4><p>经典的迭代开方运算法，具体可看下面文章中对牛顿迭代法的介绍。<br><a href="/posts/850070085/" title="快速平方根倒数算法">牛顿迭代法</a><br>其定点数代码实现如下：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">fx <span class="title">sqrt_newton</span><span class="params">(fx n)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (n &lt;= <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">  fx x = (n &gt; FX_ONE) ? n : FX_ONE; <span class="comment">// 初始值：&gt;=1 用 n，否则用 1.0</span></span><br><span class="line">  <span class="comment">// 24 次迭代足够 Q32.32 达到 1 LSB 精度，且设有早停条件。</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">24</span>; ++i) &#123;</span><br><span class="line">    fx prev = x;</span><br><span class="line">    x = (x + <span class="built_in">fx_div</span>(n, x)) &gt;&gt; <span class="number">1</span>; <span class="comment">// (x + n/x) / 2</span></span><br><span class="line">    fx delta = (x &gt; prev) ? (x - prev) : (prev - x);</span><br><span class="line">    <span class="keyword">if</span> (delta &lt;= <span class="number">1</span>) <span class="keyword">break</span>;       <span class="comment">// 收敛到 1 LSB 以内</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> x;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>进一步，可以参考快速平方根导数的做法，让近似值选择更加精确。</p>
+<h4 id="借用浮点数开方"><a href="#借用浮点数开方" class="headerlink" title="借用浮点数开方"></a>借用浮点数开方</h4><p>已知定点数$y$，我们要求定点数$x$使得$x^2=y$。根据之前对定点数的运算和它对应的整数运算的关系，有：</p>
+<script type="math/tex; mode=display">(f(x))^2=2^nf(y)</script><p>   其中，$f(x)$，$f(y)$分别是定点数$x$，$y$对应的整数，可以先把整数$2^nf(y)$转换为浮点数进行开根号，再取整。那么$f(x)$只能取$[\sqrt{2^nf(y)}]$附近一定范围内的整数。我们选择平方后和$2^nf(y)$最接近的一项，在大部分情况下比较$[\sqrt{2^nf(y)}]$，$[\sqrt{2^nf(y)}]+1$两项即可。</p>
+<h4 id="整数开方法"><a href="#整数开方法" class="headerlink" title="整数开方法"></a>整数开方法</h4><p>可以根据之前论述的定点数的值和它对应的整数值之间的关系，对其对应的整数开方。常见的有逐二进制<br>位开方法。这种算法对每个二进制位进行位运算和加减法，通过一个bit一个bit去试验，来测出平方根<br>的每个bit的值。<br>逐二进制开方算法假定对数值x求出的平方根结果的位数肯定小于x的位数的一半。因此对于64位整数求平方根，可以只测试其中的32个bit。<br>设定点数 $y$ 的底层整数为 $R_y$，定点数$x$的底层整数为$R_x$，$y$和$x$满足$y=\sqrt{x}$，现知道$x$需要求解其开方后的值$y$，可得：</p>
+<script type="math/tex; mode=display">y=\sqrt{x} \Rightarrow R_y2^{-32} = \sqrt{R_x2^{-32}}</script><p>有：</p>
+<script type="math/tex; mode=display">R_y=2^{16}\sqrt{R_x}=\sqrt{R_x}<<16</script><p>因此可对 $\sqrt{R_x}$ 执行纯整数平方根。下面给出逐二进制位开方的简单实现：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">fx <span class="title">int_sqrt_q32</span><span class="params">(fx x)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (x &lt;= <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint64_t</span> Rx = (<span class="type">uint64_t</span>)x;        <span class="comment">// 底层非负整数 R_x</span></span><br><span class="line">    <span class="type">uint64_t</span> n  = <span class="number">0</span>;                  <span class="comment">// floor(sqrt(Rx))，最多 32 位</span></span><br><span class="line">    <span class="type">uint64_t</span> b  = <span class="number">1ull</span> &lt;&lt; <span class="number">31</span>;         <span class="comment">// 从最高位开始试探</span></span><br><span class="line">    <span class="type">int</span> v_bit   = <span class="number">31</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (b) &#123;</span><br><span class="line">        <span class="type">__uint128_t</span> trial = ((<span class="type">__uint128_t</span>)((n &lt;&lt; <span class="number">1</span>) + b)) &lt;&lt; v_bit; <span class="comment">// ((n&lt;&lt;1)+b) &lt;&lt; v_bit</span></span><br><span class="line">        <span class="keyword">if</span> ((<span class="type">__uint128_t</span>)Rx &gt;= trial) &#123;</span><br><span class="line">            n  += b;</span><br><span class="line">            Rx -= (<span class="type">uint64_t</span>)trial;</span><br><span class="line">        &#125;</span><br><span class="line">        b &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">        --v_bit;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (fx)(n &lt;&lt; <span class="number">16</span>); <span class="comment">// R_y = (sqrt(R_x)) &lt;&lt; 16  → Q32.32</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="多项式拟合-1"><a href="#多项式拟合-1" class="headerlink" title="多项式拟合"></a>多项式拟合</h4><p>我们可以对定点数的小数点位置进行调整，如：$\sqrt{x}=2^{n}\sqrt{x_n}$使得$\sqrt{x_n}$满足在$[0,1]$区间上，以便更好的进行多项式拟合。</p>
+<h3 id="开方倒数"><a href="#开方倒数" class="headerlink" title="开方倒数"></a>开方倒数</h3><p>浮点数的快速开平方倒数算法详情见下面的文章。<br><a href="/posts/850070085/" title="快速平方根倒数算法">快速平方根倒数算法</a><br>和该方法类似，文章里使用四次多项式拟合公式先找到了一个比较精确的近似值，然后再通过牛顿迭代法计算一次，缩小误差。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io">Lenzo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io/posts/1154970394/">https://lenzo15.github.io/posts/1154970394/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lenzo15.github.io" target="_blank">Lenzo's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%BD%91%E7%BB%9C/">网络</a><a class="post-meta__tags" href="/tags/%E5%B8%A7%E5%90%8C%E6%AD%A5/">帧同步</a><a class="post-meta__tags" href="/tags/%E5%AE%9A%E7%82%B9%E6%95%B0/">定点数</a></div><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/3306641566/" title="并查集"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">并查集</div></div><div class="info-2"><div class="info-item-1">并查集主要针对一些需要将元素按某一规律进行分类，反复查询某个元素归属于哪个集合的应用场景。如其名字一样，并查集（union-find set）的主要操作为对元素的合并（union）和查找（find），如下：  Union(element1, element2)：把元素element2所在集合并入元素element1所在集合。要求两个集合不相交。 Find(x)：搜索单元素x所在的集合，并返回该集合的名字。  并查集中需要两种数据类型的参数：集合名类型和集合元素类型。许多情况下，可以用整数作为集合名。实现并查集的一个典型方法是采用树形结构来表示元素及其所属子集的关系。用这种实现方式，每个集合以一棵树表示，树的每一个结点代表集合的一个单元素。所有各个集合的全集合构成一个森林，并用树与森林的父指针表示来实现。其下标代表元素名。第$i$个数组元素代表包含元素$i$的树结点。树的根结点的下标代表集合名，根结点的父为集合中的元素个数的相反数，是负数。 我们设有一个全集合为$S=\{0,1,2,3,4,5,6,7,10\}$ ，初始化时每个元素自成一个单元素集合。此时的森林形态和并查集数组表示...</div></div></div></a><a class="pagination-related" href="/posts/850070085/" title="快速平方根倒数算法"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">快速平方根倒数算法</div></div><div class="info-2"><div class="info-item-1">先直接给出著名的快速平方根导数算法：函数中最核心的代码就四行下面详细说明一下这四行。  将浮点数 y 的32位IEEE 754表示直接视为整数。对于规格化的正浮点数$x$有： x = (1+2^{-23}M)2^E其中M为尾数，E为阶码，将其转化为的整数$I_x$的值为公式（1）：  I_x=M+2^{23}(E+2^7-1)这里因为阶码E是移码形式编码，且偏移值是$2^7-1$，所以后面需要加上这部分偏移值。这行代码就是让$i=I_x$。  我们设需要求的平方根导数为$y$，则有$y=\frac{1}{\sqrt{x}}$。两边取对数，得 \log_2{y} = -\frac{1}{2}\log_2x将浮点数格式代入，得 \log_2{y} = -\frac{1}{2}\log_2{((1+2^{-23}M)2^E)}整理得 \log_2{y} = -\frac{1}{2}[\log_2{(1+2^{-23}M)}+E]对于函数$f(x)=\log_2{(1+x)}$，根据在0点的泰勒展开式，有 f(x) = \log_2{(1+x)}=0+f^{'}(0)+R_1(x) \a...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/3900935936/" title="游戏中的网络通讯（五）网络同步方案概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-07</div><div class="info-item-2">游戏中的网络通讯（五）网络同步方案概览</div></div><div class="info-2"><div class="info-item-1">同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。具体来说，网络同步有多个重要目的：  为了保持游戏状态的一致性。比如在MMO游戏中，当一个玩家击败怪物获得宝物时，其他玩家需要立即知道这件事，否则就会出现两个玩家都以为自己获得了宝物的混乱局面。这种一致性体现在位置、生命值、物品状态等多个方面。 为了提供流畅的游戏体验。网络延迟是不可避免的，同步技术如客户端预测可以让玩家在等待服务器响应时也能有流畅的操作体验。如果同步不好，玩家会遇到角色瞬移、动作延迟等问题。 防止作弊。服务器通过权威验证可以防止玩家篡改本地客户端数据作弊。如果客户端可以随意修改状态而不被服务器检查，游戏就很容易被破解。 优化性能。通过差异化同步等技术，只传输变化的数据而不是完整状态，可...</div></div></div></a><a class="pagination-related" href="/posts/343241564/" title="游戏中的网络通讯（六）浮点数确定性"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-14</div><div class="info-item-2">游戏中的网络通讯（六）浮点数确定性</div></div><div class="info-2"><div class="info-item-1">以下都是在IEEE 754-2019浮点数标准下探讨，按其他标准设计的浮点数不在探讨范围中。IEEE 754相关内容在浮点数的编码 (IEEE 754)中详细介绍。我常常在各种技术文章里看到类似，说由于浮点数精度原因，在网络同步中不会使用浮点数，转而会使用定点数代替浮点数的说法。因此，本文对浮点数的确定性问题进行详细探讨。 IEEE 754规定了五种浮点基本格式：  三种二进制格式，编码长度分别为32/64/128 bits 两种十进制格式，编码长度分别为64/128 bits  其中，大部分编译器实现了符合标准的单精度浮点数和双精度浮点数（32位和64位二进制浮点格式）。以c++举例，有、、三种基础浮点类型。其中的可移植性最差。有些系统不直接支持，在这些系统上，它的大小与类型相同。比如 在 MSVC 下是 64 位，在 GCC/Clang 下是 80 位。设备的字节序也会影响浮点数的解析，如x86为小端序，PowerPC为大端序。若不显式处理，跨设备传输二进制浮点数据时会发生解析错误。 可见，对于实现了IEEE 754标准的编译器而言，基本可以保证浮点数编码的统一性。浮点数真正...</div></div></div></a><a class="pagination-related" href="/posts/3386282172/" title="游戏中的网络通信（一）网络通信基础"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-19</div><div class="info-item-2">游戏中的网络通信（一）网络通信基础</div></div><div class="info-2"><div class="info-item-1"> 文章首先讲解了计算机网络的五层体系结构，重点分析了运输层的作用——为应用进程之间提供端到端通信，通过端口实现复用和分用功能。对比了UDP协议和TCP协议这两个主要的运输层协议。 计算机网络的体系结构常被分为或。其中，OSI的七层协议体系结构的概念清楚，理论也较完整，但它既复杂又不实用。TCP/IP体系结构则不同，它现在已经得到了非常广泛的应用。在谢希仁编著的《计算机网络》中，综合OSI和TCP/IP的优点，采用了一种只有五层协议的体系结构。  应用层：报文应用层是体系结构中的最高层。应用层的任务是通过应用进程间的交互来完成特定网络应用。应用层协议定义的是应用进程间通信和交互的规则。这里的进程(process)就是指主机中正在运行的程序。对于不同的网络应用需要有不同的应用层协议。在因特网中的应用层协议很多，如支持万维网应用的HTTP协议，支持文件传送的FTP协议，等等。我们将应用层交互的数据单元称为报文(message)。 运输层：报文段/用户数据段运输层的任务就是负责向两个主机中进程之间的通信提供通用的数据传输服务。应用进程利用该服务传送应用层报文。所谓通用，是指并不针对某个特...</div></div></div></a><a class="pagination-related" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-15</div><div class="info-item-2">游戏中的网络通信（八）网络同步预表现技术</div></div><div class="info-2"><div class="info-item-1">绝大多数的网络游戏，总会将服务器作为各客户端间交互通信的权威中转站和裁决者，玩家的操作指令总要经过服务器的中转，直到接收到服务器的下行数据后才能真正执行游戏逻辑、更新画面表现。这段网络通信的时间，导致从玩家发起操作到看到画面展示出相应的操作表现之间存在一段显示延迟。显示延迟超过一定阈值后，玩家的操作将不能得到即时的表现反馈，会有明显的延迟感受。为了优化高延迟网络下的游戏操作和表现延迟，客户端预表现技术应运而生。其主要策略是：在游戏操作发出时，由客户端在本地立即处理，先行执行和展示一些画面表现，而不必等到服务器确认下发。这样，在玩家按键操作的同时，游戏画面就能立即更新、展现部分操作表现反馈，玩家的操作手感得到明显提升。以下介绍一些常用或者著名的预表现方案。 客户端预测回滚是相当普遍常用的客户端表现技术。首先客户端先行，玩家输入（如按下前进键）后，客户端立即模拟操作结果（角色移动），无需等待服务器确认，以消除操作延迟。这就是客户端预测的部分。在服务器回包后，对比当前客户端预测，发现状态不一致的情况。这时则需要进行回滚。这时，客户端会回滚到状态不一致的那一帧，然后再重新应用这一帧之后的...</div></div></div></a><a class="pagination-related" href="/posts/3544708607/" title="游戏中的网络通信（二）TCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-31</div><div class="info-item-2">游戏中的网络通信（二）TCP协议详解</div></div><div class="info-2"><div class="info-item-1">介绍了TCP协议的核心机制，主要包括四个方面：TCP可靠传输、TCP流量控制、TCP拥塞控制、TCP连接管理。 TCP的滑动窗口是以字节为单位的，包括发送窗口和接受窗口两种形式。发送窗口表示：在没有收到B的确认的情况下，A可以连续把窗口内的数据都发送出去。凡是已经发送过的数据，在未收到确认之前都必须暂时保留，以便在超时重传时使用。如图所示，要描述一个发送窗口的状态需要三个指针：P1，P2和P3。小于P1的是已发送并已收到确认的部分，而大于P3的是不允许发送的部分。P3 - P1 = A的发送窗口（又称为通知窗口）P2 - P1 = 已发送但尚未收到确认的字节数P3 - P2 = 允许发送但尚未发送的字节数（又称为可用窗口或有效窗口） 接收窗口相比比较简单，只有前沿和后沿，后沿表示已发送确认并且交付上层主机的数据，前沿表示不允许接受的最小序号，前后沿之间就是接受窗口。如图所示，B还收到了序号为32和33的数据，但这些都没有按序到达，只能先暂存在接收窗口中。当A在发送完窗口内的数据后，发送窗口内的序号都属于已发送但未被确认，在经过一段时间后（由超时计时器控制）A会重传已发送但未收到确...</div></div></div></a><a class="pagination-related" href="/posts/730200892/" title="游戏中的网络通讯基础-粘包与半包"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-26</div><div class="info-item-2">游戏中的网络通讯基础-粘包与半包</div></div><div class="info-2"><div class="info-item-1">我们设定发送端希望发送的两个数据分别为$A$和$B$，在生成发送数据包时，由于某些原因，$B$数据被拆成了两份$B_1$和$B_2$，并且$B_1$和$A$数据一起组成了一个网络数据包$F_1$进行了发送，$B_2$单独作为一个网络数据包$F_2$进行发送。这时，网络数据包$F_1$中数据$A$和$B$“粘连”在一起，就被称为粘包。网络数据包$F_2$中数据$B$不完整，就被称为“半包”。可以想到，在不做任何处理的情况下，接收端收到的网络数据包$F_1$，是无法将数据$A$辨识并解析出来的，在接受了$F_1$和$F_2$数据包后，也无法将数据$B$提取并合并成完整的数据。 粘包与半包常在TCP传输中出现，不过事实上，如果你的网络协议具有分包组包的功能，那么就会出现半包问题，如果具有将多个小数据包合并成一个大数据包的功能，那么就会出现粘包。分包组包指，当需要发送的数据量过大，或者网络条件限制（如带宽限制、丢包率高等）时，为了确保数据的完整性和发送效率，通常会将大块数据分割成多个小数据包进行发送，这就是所谓的分包。每个数据包都有一个唯一的序列号，以便接收端能够按照正确的顺序重新组合这...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Lenzo</div><div class="author-info-description">Viva los artistas y su amor!</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/lenzo15"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lenzo15" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:lenzo@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">概览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E7%BB%93%E6%9E%84"><span class="toc-number">2.</span> <span class="toc-text">定点数结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E5%9B%9B%E5%88%99%E8%BF%90%E7%AE%97"><span class="toc-number">3.</span> <span class="toc-text">定点数四则运算</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E5%8A%A0%E5%87%8F%E6%B3%95"><span class="toc-number">3.1.</span> <span class="toc-text">定点数加减法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E4%B9%98%E6%B3%95"><span class="toc-number">3.2.</span> <span class="toc-text">定点数乘法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%99%A4%E6%B3%95"><span class="toc-number">3.3.</span> <span class="toc-text">除法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9A%E7%82%B9%E6%95%B0%E5%BC%80%E6%96%B9%E4%B8%8E%E8%B6%85%E8%B6%8A%E5%87%BD%E6%95%B0"><span class="toc-number">4.</span> <span class="toc-text">定点数开方与超越函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E9%A1%B9%E5%BC%8F%E6%8B%9F%E5%90%88"><span class="toc-number">4.1.</span> <span class="toc-text">多项式拟合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A3%E5%BC%A6%E4%BD%99%E5%BC%A6"><span class="toc-number">4.2.</span> <span class="toc-text">正弦余弦</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E7%AE%97%E6%B3%95"><span class="toc-number">4.2.1.</span> <span class="toc-text">具体算法</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%87%E6%95%B0%E5%87%BD%E6%95%B0"><span class="toc-number">4.3.</span> <span class="toc-text">指数函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%B9%E6%95%B0%E5%87%BD%E6%95%B0"><span class="toc-number">4.4.</span> <span class="toc-text">对数函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E6%96%B9%E8%BF%90%E7%AE%97"><span class="toc-number">4.5.</span> <span class="toc-text">开方运算</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%89%9B%E9%A1%BF%E8%BF%AD%E4%BB%A3%E6%B3%95"><span class="toc-number">4.5.1.</span> <span class="toc-text">牛顿迭代法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%80%9F%E7%94%A8%E6%B5%AE%E7%82%B9%E6%95%B0%E5%BC%80%E6%96%B9"><span class="toc-number">4.5.2.</span> <span class="toc-text">借用浮点数开方</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B4%E6%95%B0%E5%BC%80%E6%96%B9%E6%B3%95"><span class="toc-number">4.5.3.</span> <span class="toc-text">整数开方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%9A%E9%A1%B9%E5%BC%8F%E6%8B%9F%E5%90%88-1"><span class="toc-number">4.5.4.</span> <span class="toc-text">多项式拟合</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E6%96%B9%E5%80%92%E6%95%B0"><span class="toc-number">4.6.</span> <span class="toc-text">开方倒数</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术">游戏中的网络通信（八）网络同步预表现技术</a><time datetime="2025-09-15T14:52:15.000Z" title="发表于 2025-09-15 22:52:15">2025-09-15</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2274644961/" title="最小生成树算法">最小生成树算法</a><time datetime="2025-09-12T12:11:13.000Z" title="发表于 2025-09-12 20:11:13">2025-09-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/3306641566/" title="并查集">并查集</a><time datetime="2025-09-11T14:09:01.000Z" title="发表于 2025-09-11 22:09:01">2025-09-11</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现">游戏中的网络通信（七）高性能定点数实现</a><time datetime="2025-09-01T11:23:26.000Z" title="发表于 2025-09-01 19:23:26">2025-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/850070085/" title="快速平方根倒数算法">快速平方根倒数算法</a><time datetime="2025-09-01T10:28:05.000Z" title="发表于 2025-09-01 18:28:05">2025-09-01</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Lenzo</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.0.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const loadMathjax = () => {
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'all',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+          renderActions: {
+            findScript: [10, doc => {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/)
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+                const text = document.createTextNode('')
+                node.parentNode.replaceChild(text, node)
+                math.start = {node: text, delim: '', n: 0}
+                math.end = {node: text, delim: '', n: 0}
+                doc.math.push(math)
+              }
+            }, '']
+          }
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.startup.document.state(0)
+      MathJax.texReset()
+      MathJax.typesetPromise()
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>游戏中的网络通讯（三）KCP协议详解 | Lenzo's Blog</title><meta name="author" content="Lenzo"><meta name="copyright" content="Lenzo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="介绍KCP - A Fast and Reliable ARQ ProtocolKCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系">
+<meta property="og:type" content="article">
+<meta property="og:title" content="游戏中的网络通讯（三）KCP协议详解">
+<meta property="og:url" content="https://lenzo15.github.io/posts/2662722858/index.html">
+<meta property="og:site_name" content="Lenzo&#39;s Blog">
+<meta property="og:description" content="介绍KCP - A Fast and Reliable ARQ ProtocolKCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lenzo15.github.io/img/butterfly-icon.png">
+<meta property="article:published_time" content="2025-08-01T07:37:16.000Z">
+<meta property="article:modified_time" content="2025-09-27T10:16:25.582Z">
+<meta property="article:author" content="Lenzo">
+<meta property="article:tag" content="KCP">
+<meta property="article:tag" content="UDP&#x2F;TCP">
+<meta property="article:tag" content="网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lenzo15.github.io/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "游戏中的网络通讯（三）KCP协议详解",
+  "url": "https://lenzo15.github.io/posts/2662722858/",
+  "image": "https://lenzo15.github.io/img/butterfly-icon.png",
+  "datePublished": "2025-08-01T07:37:16.000Z",
+  "dateModified": "2025-09-27T10:16:25.582Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Lenzo",
+      "url": "https://lenzo15.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/butterfly-icon.png"><link rel="canonical" href="https://lenzo15.github.io/posts/2662722858/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'https://github.com/francoischalifour/medium-zoom',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '游戏中的网络通讯（三）KCP协议详解',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.0.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/lenzo_top_img.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Lenzo's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">游戏中的网络通讯（三）KCP协议详解</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">游戏中的网络通讯（三）KCP协议详解</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-08-01T07:37:16.000Z" title="发表于 2025-08-01 15:37:16">2025-08-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-09-27T10:16:25.582Z" title="更新于 2025-09-27 18:16:25">2025-09-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/">网络通信</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">网络协议</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p><a target="_blank" rel="noopener" href="https://github.com/skywind3000/kcp">KCP - A Fast and Reliable ARQ Protocol</a><br>KCP是一个快速可靠协议，能以比 TCP 浪费 10%-20% 的带宽的代价，换取平均延迟降低 30%-40%，且最大延迟降低三倍的传输效果。纯算法实现，并不负责底层协议（如UDP）的收发，需要使用者自己定义下层数据包的发送方式，以 callback的方式提供给 KCP。 连时钟都需要外部传递进来，内部不会有任何一次系统调用。<br><span id="more"></span><br><a target="_blank" rel="noopener" href="https://github.com/libinzhangyuan/reliable_udp_bench_mark/blob/master/bench_mark.md">reliable_udp_bench_mark</a> 比较了多个基于UDP的可靠传输框架，并给出了下面的结论：<br>并给出结论如下：</p>
+<ul>
+<li>The kcp is the first choice for realtime pvp game.</li>
+<li>The lag is less than 1 second when network lag happen. 3 times better than enet when lag happen.</li>
+<li>The enet is a good choice if your game allow 2 second lag.</li>
+<li>UDT is a bad idea. It always sink into badly situation of more than serval seconds lag. And the recovery is not expected.</li>
+</ul>
+<p>大型多人游戏服务端引擎 SpatialOS 在集成 KCP 协议后做了同 TCP/RakNet 的评测：<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://github.com/skywind3000/kcp/raw/master/images/spatialos-50.png" alt=""><br>同时，《王者荣耀》、《原神》等用户规模庞大的项目也都有使用KCP协议。</p>
+<h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><p>在该仓库的ReadMe中介绍的技术特性包括：</p>
+<ul>
+<li>RTO翻倍vs不翻倍：<br>TCP超时计算是RTOx2，这样连续丢三次包就变成RTOx8了，十分恐怖，而KCP启动快速模式后不x2，只是x1.5（实验证明1.5这个值相对比较好），提高了传输速度。</li>
+<li>选择性重传 vs 全部重传：<br>TCP丢包时会全部重传从丢的那个包开始以后的数据，KCP是选择性重传，只重传真正丢失的数据包。</li>
+<li>快速重传：<br>发送端发送了1，2，3，4，5几个包，然后收到远端的ACK: 1，3，4，5，当收到ACK3时，KCP知道2被跳过1次，收到ACK4时，知道2被跳过了2次，此时可以认为2号丢失，不用等超时，直接重传2号包，大大改善了丢包时的传输速度。</li>
+<li>延迟ACK vs 非延迟ACK：<br>TCP为了充分利用带宽，延迟发送ACK（NODELAY都没用），这样超时计算会算出较大 RTT时间，延长了丢包时的判断过程。KCP的ACK是否延迟发送可以调节。</li>
+<li>UNA vs ACK+UNA：<br>ARQ模型响应有两种，UNA（此编号前所有包已收到，如TCP）和ACK（该编号包已收到），光用UNA将导致全部重传，光用ACK则丢失成本太高，以往协议都是二选其一，而 KCP协议中，除去单独的 ACK包外，所有包都有UNA信息。</li>
+<li>非退让流控：<br>KCP正常模式同TCP一样使用公平退让法则，即发送窗口大小由：发送缓存大小、接收端剩余接收缓存大小、丢包退让及慢启动这四要素决定。但传送及时性要求很高的小数据时，可选择通过配置跳过后两步，仅用前两项来控制发送频率。以牺牲部分公平性及带宽利用率之代价，换取了开着BT都能流畅传输的效果。</li>
+</ul>
+<p>事实上，通过前面<a href="/posts/3544708607/" title="游戏中的网络通信（二）TCP协议详解">关于TCP的博客</a>的介绍我们也发现了，TCP同样可以实现选择重传、快重传。而且在快重传规则下，额外的选择重传功能意义不大。从源码看，KCP也确实没有额外实现一套选择重传的功能，README里应该是把快重传功能作为一个选择重传的实现写上去了。<br>通过对比源码来看，KCP主要实现了下面的功能：</p>
+<ul>
+<li>让TCP的$Karn$算法改进部分，超时计算从TCP的RTOx2变为RTOx1.5。</li>
+<li>TCP的快重传指发送方只要一连收到三个重复确认就应当立即重传对方尚未收到的报文段，而不必继续等待为该报文段设置的重传计时器到期。在KCP中将重传需要收到的重复确认次数变为可配置的，一般被配置成2次。</li>
+<li>KCP将丢包退让和慢启动变为可配置，出现丢包后不会进行门限值ssthresh的减半和慢启动。</li>
+<li>这一点是KCP最核心的改动，KCP协议首部中，同时包含了ACK（该编号包已收到）和UNA（此编号前所有包已收到，相当于发送窗口的左指针）信息。这使得快重传和选择重传的效率变得更高。</li>
+</ul>
+<h2 id="KCP首部格式"><a href="#KCP首部格式" class="headerlink" title="KCP首部格式"></a>KCP首部格式</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">0               4   5   6       8 (BYTE)</span><br><span class="line">+---------------+---+---+-------+</span><br><span class="line">|     conv      |cmd|frg|  wnd  |</span><br><span class="line">+---------------+---+---+-------+   8</span><br><span class="line">|     ts        |     sn        |</span><br><span class="line">+---------------+---------------+  16</span><br><span class="line">|     una       |     len       |</span><br><span class="line">+---------------+---------------+  24</span><br><span class="line">|                               |</span><br><span class="line">|        DATA (optional)        |</span><br><span class="line">|                               |</span><br><span class="line">+-------------------------------+</span><br></pre></td></tr></table></figure>
+<ul>
+<li>conv 4 字节: 连接标识符，用于识别一个特定的会话。</li>
+<li>cmd 1 字节: Command。</li>
+<li>frg 1 字节: 分片数量. 表示随后还有多少个报文属于同一个包。</li>
+<li>wnd 2 字节: 发送方剩余接收窗口的大小。</li>
+<li>ts 4 字节: 时间戳。</li>
+<li>sn 4 字节: 报文编号。</li>
+<li>una 4 字节: 发送方的接收缓冲区中最小还未收到的报文段的编号. 也就是说, 编号比它小的报文段都已全部接收。</li>
+<li>len 4 字节: 数据段长度。</li>
+<li>data: 数据段. 只有数据报文会有这个字段。</li>
+</ul>
+<h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p>KCP 的整个发送，接收与重传的流程大体如下:</p>
+<ul>
+<li>调用 ikcp_send 发送数据，创建报文段实例，加入 snd_queue 中。</li>
+<li>ikcp_update 会在合适的时刻调用 ikcp_flush。</li>
+<li>ikcp_flush 会做:<ul>
+<li>发送 ACK 列表中所有的 ACK。</li>
+<li>检查是否需要发送窗口探测和通知报文，如果需要就发送相应的报文。</li>
+<li>根据发送窗口大小，将适量的报文段从 snd_queue 移入到 snd_buf 中。</li>
+<li>将 snd_buf 中满足条件的报文段都发送出去. 这里的条件有。<ul>
+<li>新加入 snd_buf 中，从未发送过的报文直接发送出去。</li>
+<li>发送过的，但是在 RTO 内未收到 ACK 的报文，需要重传。</li>
+<li>发送过的，但是 ACK 失序若干次的报文，需要执行快速重传。</li>
+</ul>
+</li>
+<li>根据丢包情况计算 ssthresh 和 cwnd。</li>
+</ul>
+</li>
+<li>这样，刚才调用 ikcp_send 传入的数据就在 ikcp_flush 中被发送出去了。</li>
+<li>报文到达对端。</li>
+<li>ikcp_input 会被调用，解析收到的数据:<ul>
+<li>所有的报文都有 una 字段，根据 una 将相应的报文标记为已送达。</li>
+<li>如果是 ACK 报文，就将相应的报文标记为已送达。</li>
+<li>如果是数据报文，就将它放入 rcv_buf，然后将 rcv_buf 中顺序正确的报文移入 rcv_queue; 接着将相关信息插入 ACK 列表，在稍后的 ikcp_flush 调用中会发送相应的 ACK。</li>
+<li>如果是窗口探测报文，就标记 “需要发送窗口通知”. 在稍后的 ikcp_flush 调用中会发送窗口通知报文。</li>
+<li>包括窗口通知报文在内的所有报文都有 wnd 字段，据此更新 rmt_wnd。</li>
+<li>根据 ACK 失序情况决定快速重传。</li>
+<li>计算 cwnd。</li>
+</ul>
+</li>
+<li>调用 ikcp_recv 接收数据，从 rcv_queue 中读取数据。<br>之后 ACK 会返回给发送方，发送方在 ikcp_input 中解析到 ACK，将对应的报文标记为已送达，这就完成了一次发送. 如果发生了丢包，发送方最终收不到 ACK. 这会导致重传。</li>
+</ul>
+<p>下面举个简单的例子：<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/posts/2662722858/kcp_5.svg" class="" title="kcp流程"></p>
+<ol>
+<li>t1 时刻发送方发送 1 号报文，1 号报文放入发送缓冲区中，snd_una 指向 1，snd_nxt 指向 2。</li>
+<li>t2 至 t3 时刻发送方依次发送 2 至 3 号报文，snd_nxt 依次后移。</li>
+<li>1 号报文丢包。</li>
+<li>t4，t5 时刻接收方收到 3 号和 2 号报文，放入 rcv_buf 中; 随后回复 3 号和 2 号 ACK。此时由于 1 号报文缺失，rcv_nxt 始终指向 1。</li>
+<li>3 号 ACK 丢包。</li>
+<li>t7 时刻发送方收到 2 号 ACK，将 2 号报文标记为已送达。此时由于 3 号 ACK 丢包，3 号报文未标记为已送达。由于 1 号报文未确认送达，snd_una 亦指向 1。</li>
+<li>t8 时刻 1 号报文超时，重传。</li>
+<li>t9 时刻接收方收到 1 号报文，放入 rcv_buf 中; 这时 1，2，3 号报文顺序正确，rcv_nxt 右移到 4 号位置。接收方回复 1 号 ACK，同时带上 una = 4。</li>
+<li>t10 时刻发送方收到 1 号 ACK，将 1 号报文标记为已送达。同时 una 表明 1，2，3 号报文均已送达，因此也将 3 号报文标记为已送达。snd_una 移动到 4。</li>
+</ol>
+<h2 id="应用"><a href="#应用" class="headerlink" title="应用"></a>应用</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br></pre></td><td class="code"><pre><span class="line">      </span><br><span class="line"><span class="comment">//=====================================================================</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// test.cpp - kcp 测试用例</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 说明：</span></span><br><span class="line"><span class="comment">// gcc test.cpp -o test -lstdc++</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//=====================================================================</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;test.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;ikcp.c&quot;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模拟网络</span></span><br><span class="line">LatencySimulator *vnet;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模拟网络：模拟发送一个 udp包</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">udp_output</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *buf, <span class="type">int</span> len, ikcpcb *kcp, <span class="type">void</span> *user)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span> <span class="type">int</span> id; <span class="type">void</span> *ptr; &#125; parameter;</span><br><span class="line">	parameter.ptr = user;</span><br><span class="line">	vnet-&gt;send(parameter.id, buf, len);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 测试用例</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">test</span><span class="params">(<span class="type">int</span> mode)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 创建模拟网络：丢包率10%，Rtt 60ms~125ms</span></span><br><span class="line">	vnet = new LatencySimulator(<span class="number">10</span>, <span class="number">60</span>, <span class="number">125</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建两个端点的 kcp对象，第一个参数 conv是会话编号，同一个会话需要相同</span></span><br><span class="line">	<span class="comment">// 最后一个是 user参数，用来传递标识</span></span><br><span class="line">	ikcpcb *kcp1 = ikcp_create(<span class="number">0x11223344</span>, (<span class="type">void</span>*)<span class="number">0</span>);</span><br><span class="line">	ikcpcb *kcp2 = ikcp_create(<span class="number">0x11223344</span>, (<span class="type">void</span>*)<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置kcp的下层输出，这里为 udp_output，模拟udp网络输出函数</span></span><br><span class="line">	kcp1-&gt;output = udp_output;</span><br><span class="line">	kcp2-&gt;output = udp_output;</span><br><span class="line"></span><br><span class="line">	IUINT32 current = iclock();</span><br><span class="line">	IUINT32 slap = current + <span class="number">20</span>;</span><br><span class="line">	IUINT32 index = <span class="number">0</span>;</span><br><span class="line">	IUINT32 next = <span class="number">0</span>;</span><br><span class="line">	IINT64 sumrtt = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> count = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> maxrtt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 配置窗口大小：平均延迟200ms，每20ms发送一个包，</span></span><br><span class="line">	<span class="comment">// 而考虑到丢包重发，设置最大收发窗口为128</span></span><br><span class="line">	ikcp_wndsize(kcp1, <span class="number">128</span>, <span class="number">128</span>);</span><br><span class="line">	ikcp_wndsize(kcp2, <span class="number">128</span>, <span class="number">128</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 判断测试用例的模式</span></span><br><span class="line">	<span class="keyword">if</span> (mode == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="comment">// 默认模式</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (mode == <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="comment">// 普通模式，关闭流控等</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">0</span>, <span class="number">10</span>, <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">	&#125;	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 启动快速模式</span></span><br><span class="line">		<span class="comment">// 第二个参数 nodelay-启用以后若干常规加速将启动</span></span><br><span class="line">		<span class="comment">// 第三个参数 interval为内部处理时钟，默认设置为 10ms</span></span><br><span class="line">		<span class="comment">// 第四个参数 resend为快速重传指标，设置为2</span></span><br><span class="line">		<span class="comment">// 第五个参数 为是否禁用常规流控，这里禁止</span></span><br><span class="line">		ikcp_nodelay(kcp1, <span class="number">2</span>, <span class="number">10</span>, <span class="number">2</span>, <span class="number">1</span>);</span><br><span class="line">		ikcp_nodelay(kcp2, <span class="number">2</span>, <span class="number">10</span>, <span class="number">2</span>, <span class="number">1</span>);</span><br><span class="line">		kcp1-&gt;rx_minrto = <span class="number">10</span>;</span><br><span class="line">		kcp1-&gt;fastresend = <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="type">char</span> buffer[<span class="number">2000</span>];</span><br><span class="line">	<span class="type">int</span> hr;</span><br><span class="line"></span><br><span class="line">	IUINT32 ts1 = iclock();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">		isleep(<span class="number">1</span>);</span><br><span class="line">		current = iclock();</span><br><span class="line">		ikcp_update(kcp1, iclock());</span><br><span class="line">		ikcp_update(kcp2, iclock());</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 每隔 20ms，kcp1发送数据</span></span><br><span class="line">		<span class="keyword">for</span> (; current &gt;= slap; slap += <span class="number">20</span>) &#123;</span><br><span class="line">			((IUINT32*)buffer)[<span class="number">0</span>] = index++;</span><br><span class="line">			((IUINT32*)buffer)[<span class="number">1</span>] = current;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 发送上层协议包</span></span><br><span class="line">			ikcp_send(kcp1, buffer, <span class="number">8</span>);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理虚拟网络：检测是否有udp包从p1-&gt;p2</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = vnet-&gt;recv(<span class="number">1</span>, buffer, <span class="number">2000</span>);</span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果 p2收到udp，则作为下层协议输入到kcp2</span></span><br><span class="line">			ikcp_input(kcp2, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理虚拟网络：检测是否有udp包从p2-&gt;p1</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = vnet-&gt;recv(<span class="number">0</span>, buffer, <span class="number">2000</span>);</span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果 p1收到udp，则作为下层协议输入到kcp1</span></span><br><span class="line">			ikcp_input(kcp1, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// kcp2接收到任何包都返回回去</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = ikcp_recv(kcp2, buffer, <span class="number">10</span>);</span><br><span class="line">			<span class="comment">// 没有收到包就退出</span></span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="comment">// 如果收到包就回射</span></span><br><span class="line">			ikcp_send(kcp2, buffer, hr);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// kcp1收到kcp2的回射数据</span></span><br><span class="line">		<span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">			hr = ikcp_recv(kcp1, buffer, <span class="number">10</span>);</span><br><span class="line">			<span class="comment">// 没有收到包就退出</span></span><br><span class="line">			<span class="keyword">if</span> (hr &lt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			IUINT32 sn = *(IUINT32*)(buffer + <span class="number">0</span>);</span><br><span class="line">			IUINT32 ts = *(IUINT32*)(buffer + <span class="number">4</span>);</span><br><span class="line">			IUINT32 rtt = current - ts;</span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> (sn != next) &#123;</span><br><span class="line">				<span class="comment">// 如果收到的包不连续</span></span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">&quot;ERROR sn %d&lt;-&gt;%d\n&quot;</span>, (<span class="type">int</span>)count, (<span class="type">int</span>)next);</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			next++;</span><br><span class="line">			sumrtt += rtt;</span><br><span class="line">			count++;</span><br><span class="line">			<span class="keyword">if</span> (rtt &gt; (IUINT32)maxrtt) maxrtt = rtt;</span><br><span class="line"></span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;[RECV] mode=%d sn=%d rtt=%d\n&quot;</span>, mode, (<span class="type">int</span>)sn, (<span class="type">int</span>)rtt);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (next &gt; <span class="number">1000</span>) <span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ts1 = iclock() - ts1;</span><br><span class="line"></span><br><span class="line">	ikcp_release(kcp1);</span><br><span class="line">	ikcp_release(kcp2);</span><br><span class="line"></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *names[<span class="number">3</span>] = &#123; <span class="string">&quot;default&quot;</span>, <span class="string">&quot;normal&quot;</span>, <span class="string">&quot;fast&quot;</span> &#125;;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;%s mode result (%dms):\n&quot;</span>, names[mode], (<span class="type">int</span>)ts1);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;avgrtt=%d maxrtt=%d tx=%d\n&quot;</span>, (<span class="type">int</span>)(sumrtt / count), (<span class="type">int</span>)maxrtt, (<span class="type">int</span>)vnet-&gt;tx1);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;press enter to next ...\n&quot;</span>);</span><br><span class="line">	<span class="type">char</span> ch; <span class="built_in">scanf</span>(<span class="string">&quot;%c&quot;</span>, &amp;ch);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	test(<span class="number">0</span>);	<span class="comment">// 默认模式，类似 TCP：正常模式，无快速重传，常规流控</span></span><br><span class="line">	test(<span class="number">1</span>);	<span class="comment">// 普通模式，关闭流控等</span></span><br><span class="line">	test(<span class="number">2</span>);	<span class="comment">// 快速模式，所有开关都打开，且关闭流控</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">default mode result (20917ms):</span></span><br><span class="line"><span class="comment">avgrtt=740 maxrtt=1507</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">normal mode result (20131ms):</span></span><br><span class="line"><span class="comment">avgrtt=156 maxrtt=571</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">fast mode result (20207ms):</span></span><br><span class="line"><span class="comment">avgrtt=138 maxrtt=392</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ol>
+<li><a target="_blank" rel="noopener" href="https://luyuhuang.tech/2020/12/09/kcp.html">详解 KCP 协议的原理和实现</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/10153049382">KCP 源码分析与原理总结</a></li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io">Lenzo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lenzo15.github.io/posts/2662722858/">https://lenzo15.github.io/posts/2662722858/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lenzo15.github.io" target="_blank">Lenzo's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%BD%91%E7%BB%9C/">网络</a><a class="post-meta__tags" href="/tags/UDP-TCP/">UDP/TCP</a><a class="post-meta__tags" href="/tags/KCP/">KCP</a></div><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/1876586415/" title="游戏中的网络通讯（四）Protobuf详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">游戏中的网络通讯（四）Protobuf详解</div></div><div class="info-2"><div class="info-item-1">协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的”包装方式”——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在”可读性”与”效率”上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化/反序列化相当于”装箱/拆箱”过程，比如部分格式可以开箱即用，而部分是压缩袋打包的，开箱后则需将打包物体恢复原状。除了上述格式外，还有比如YAML、XML甚至自定义二进制格式，这些只是数据的包装运输手段，同一份数据可以用不同的格式传输。所以协议格式的重点在于：  序列化：数据被包装成该格式的过程 反序列化：从该格式的数据包中还原出原数据的过程 传输效率：序列化后的数据包大小。 可读性：序列化后的数据包能不能被人看出来原本的数据内容。  这里不详细介绍JSON、MsgPack等格式，感兴趣的读者可以自行查找，这里仅介绍Protobuf。 ProtoBuf的官网中这样介绍这个协议:Protocol Buffers ...</div></div></div></a><a class="pagination-related" href="/posts/3544708607/" title="游戏中的网络通信（二）TCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">游戏中的网络通信（二）TCP协议详解</div></div><div class="info-2"><div class="info-item-1">介绍了TCP协议的核心机制，主要包括四个方面：TCP可靠传输、TCP流量控制、TCP拥塞控制、TCP连接管理。 TCP的滑动窗口是以字节为单位的，包括发送窗口和接受窗口两种形式。发送窗口表示：在没有收到B的确认的情况下，A可以连续把窗口内的数据都发送出去。凡是已经发送过的数据，在未收到确认之前都必须暂时保留，以便在超时重传时使用。如图所示，要描述一个发送窗口的状态需要三个指针：P1，P2和P3。小于P1的是已发送并已收到确认的部分，而大于P3的是不允许发送的部分。P3 - P1 = A的发送窗口（又称为通知窗口）P2 - P1 = 已发送但尚未收到确认的字节数P3 - P2 = 允许发送但尚未发送的字节数（又称为可用窗口或有效窗口） 接收窗口相比比较简单，只有前沿和后沿，后沿表示已发送确认并且交付上层主机的数据，前沿表示不允许接受的最小序号，前后沿之间就是接受窗口。如图所示，B还收到了序号为32和33的数据，但这些都没有按序到达，只能先暂存在接收窗口中。当A在发送完窗口内的数据后，发送窗口内的序号都属于已发送但未被确认，在经过一段时间后（由超时计时器控制）A会重传已发送但未收到确...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/3386282172/" title="游戏中的网络通信（一）网络通信基础"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-19</div><div class="info-item-2">游戏中的网络通信（一）网络通信基础</div></div><div class="info-2"><div class="info-item-1"> 文章首先讲解了计算机网络的五层体系结构，重点分析了运输层的作用——为应用进程之间提供端到端通信，通过端口实现复用和分用功能。对比了UDP协议和TCP协议这两个主要的运输层协议。 计算机网络的体系结构常被分为或。其中，OSI的七层协议体系结构的概念清楚，理论也较完整，但它既复杂又不实用。TCP/IP体系结构则不同，它现在已经得到了非常广泛的应用。在谢希仁编著的《计算机网络》中，综合OSI和TCP/IP的优点，采用了一种只有五层协议的体系结构。  应用层：报文应用层是体系结构中的最高层。应用层的任务是通过应用进程间的交互来完成特定网络应用。应用层协议定义的是应用进程间通信和交互的规则。这里的进程(process)就是指主机中正在运行的程序。对于不同的网络应用需要有不同的应用层协议。在因特网中的应用层协议很多，如支持万维网应用的HTTP协议，支持文件传送的FTP协议，等等。我们将应用层交互的数据单元称为报文(message)。 运输层：报文段/用户数据段运输层的任务就是负责向两个主机中进程之间的通信提供通用的数据传输服务。应用进程利用该服务传送应用层报文。所谓通用，是指并不针对某个特...</div></div></div></a><a class="pagination-related" href="/posts/3544708607/" title="游戏中的网络通信（二）TCP协议详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-31</div><div class="info-item-2">游戏中的网络通信（二）TCP协议详解</div></div><div class="info-2"><div class="info-item-1">介绍了TCP协议的核心机制，主要包括四个方面：TCP可靠传输、TCP流量控制、TCP拥塞控制、TCP连接管理。 TCP的滑动窗口是以字节为单位的，包括发送窗口和接受窗口两种形式。发送窗口表示：在没有收到B的确认的情况下，A可以连续把窗口内的数据都发送出去。凡是已经发送过的数据，在未收到确认之前都必须暂时保留，以便在超时重传时使用。如图所示，要描述一个发送窗口的状态需要三个指针：P1，P2和P3。小于P1的是已发送并已收到确认的部分，而大于P3的是不允许发送的部分。P3 - P1 = A的发送窗口（又称为通知窗口）P2 - P1 = 已发送但尚未收到确认的字节数P3 - P2 = 允许发送但尚未发送的字节数（又称为可用窗口或有效窗口） 接收窗口相比比较简单，只有前沿和后沿，后沿表示已发送确认并且交付上层主机的数据，前沿表示不允许接受的最小序号，前后沿之间就是接受窗口。如图所示，B还收到了序号为32和33的数据，但这些都没有按序到达，只能先暂存在接收窗口中。当A在发送完窗口内的数据后，发送窗口内的序号都属于已发送但未被确认，在经过一段时间后（由超时计时器控制）A会重传已发送但未收到确...</div></div></div></a><a class="pagination-related" href="/posts/1876586415/" title="游戏中的网络通讯（四）Protobuf详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-04</div><div class="info-item-2">游戏中的网络通讯（四）Protobuf详解</div></div><div class="info-2"><div class="info-item-1">协议包格式有JSON、MsgPack、Protobuf格式以及自定义格式。在建设项目的网路层时，除了要选择传输协议TCP、UDP，以及应用层协议HTTP外，还需要选择在传输过程中的业务层协议格式。协议格式本质是数据的”包装方式”——就像快递打包时选择纸箱、泡沫箱或真空压缩袋。不同格式在”可读性”与”效率”上会有所权衡，比如书本人人可读但体积大；密码电报高效但需密码本。序列化/反序列化相当于”装箱/拆箱”过程，比如部分格式可以开箱即用，而部分是压缩袋打包的，开箱后则需将打包物体恢复原状。除了上述格式外，还有比如YAML、XML甚至自定义二进制格式，这些只是数据的包装运输手段，同一份数据可以用不同的格式传输。所以协议格式的重点在于：  序列化：数据被包装成该格式的过程 反序列化：从该格式的数据包中还原出原数据的过程 传输效率：序列化后的数据包大小。 可读性：序列化后的数据包能不能被人看出来原本的数据内容。  这里不详细介绍JSON、MsgPack等格式，感兴趣的读者可以自行查找，这里仅介绍Protobuf。 ProtoBuf的官网中这样介绍这个协议:Protocol Buffers ...</div></div></div></a><a class="pagination-related" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-01</div><div class="info-item-2">游戏中的网络通信（七）高性能定点数实现</div></div><div class="info-2"><div class="info-item-1">本文参考《腾讯游戏开发精粹》高性能的定点数实现方案，是该文的读书笔记和实践记录。 文章基于64位整型数实现定点数方案，约定第0-31位为小数部分，32-62位为整数部分，第63位为符号位，即32位有符号整数，32位小数。该方案能表示的范围为： [-2^{32},2^{31}-2^{-32}]精度为： \frac{1}{2^{32}} = 2.3283064365386963\times10^{-10}在数学上，把整数的二进制表示中较低的$n$位视为小数部分，那么一个整数的二进制形式表示的定点数值其实就是这个整数值除以$2^n$。设$a$为定点数，$f(a)$为这个定点数对应的整数值，即$f(a)$是一个整数，$a$是它所表示的定点数，那么有 a=2^{-n}f(a)不同项目可以根据自己实际情况，按所需精度来确定小数位数。 浮点数的加减需要先对齐阶码（相当对齐小数点）​，然后再相加减。而定点数的小数点是对齐的，可以直接使用对应的整数的加减法。 浮点数的乘法是通过整数部分相乘、阶码相加实现的。对于64位定点数，需要实现了一个双倍宽度（128位）的有符号整数的乘法运算。对于64位编译器...</div></div></div></a><a class="pagination-related" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-15</div><div class="info-item-2">游戏中的网络通信（八）网络同步预表现技术</div></div><div class="info-2"><div class="info-item-1">绝大多数的网络游戏，总会将服务器作为各客户端间交互通信的权威中转站和裁决者，玩家的操作指令总要经过服务器的中转，直到接收到服务器的下行数据后才能真正执行游戏逻辑、更新画面表现。这段网络通信的时间，导致从玩家发起操作到看到画面展示出相应的操作表现之间存在一段显示延迟。显示延迟超过一定阈值后，玩家的操作将不能得到即时的表现反馈，会有明显的延迟感受。为了优化高延迟网络下的游戏操作和表现延迟，客户端预表现技术应运而生。其主要策略是：在游戏操作发出时，由客户端在本地立即处理，先行执行和展示一些画面表现，而不必等到服务器确认下发。这样，在玩家按键操作的同时，游戏画面就能立即更新、展现部分操作表现反馈，玩家的操作手感得到明显提升。以下介绍一些常用或者著名的预表现方案。 客户端预测回滚是相当普遍常用的客户端表现技术。首先客户端先行，玩家输入（如按下前进键）后，客户端立即模拟操作结果（角色移动），无需等待服务器确认，以消除操作延迟。这就是客户端预测的部分。在服务器回包后，对比当前客户端预测，发现状态不一致的情况。这时则需要进行回滚。这时，客户端会回滚到状态不一致的那一帧，然后再重新应用这一帧之后的...</div></div></div></a><a class="pagination-related" href="/posts/3900935936/" title="游戏中的网络通讯（五）网络同步方案概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-07</div><div class="info-item-2">游戏中的网络通讯（五）网络同步方案概览</div></div><div class="info-2"><div class="info-item-1">同步方案是联网游戏中才有的概念，​​网络同步的核心目的是确保所有玩家在各自客户端上感知的游戏状态高度一致​​，同时优化延迟、防止作弊并提升整体体验。在当前网络游戏中，网络同步解决方案目前公认并且常用的有两种，即状态同步和锁步帧同步（lockstep），但是除此之外，还分类出了实时广播同步、快照同步、状态帧同步等方案。这些方案不互相排斥，可以混合使用。这里对提到的这些方案都进行介绍。具体来说，网络同步有多个重要目的：  为了保持游戏状态的一致性。比如在MMO游戏中，当一个玩家击败怪物获得宝物时，其他玩家需要立即知道这件事，否则就会出现两个玩家都以为自己获得了宝物的混乱局面。这种一致性体现在位置、生命值、物品状态等多个方面。 为了提供流畅的游戏体验。网络延迟是不可避免的，同步技术如客户端预测可以让玩家在等待服务器响应时也能有流畅的操作体验。如果同步不好，玩家会遇到角色瞬移、动作延迟等问题。 防止作弊。服务器通过权威验证可以防止玩家篡改本地客户端数据作弊。如果客户端可以随意修改状态而不被服务器检查，游戏就很容易被破解。 优化性能。通过差异化同步等技术，只传输变化的数据而不是完整状态，可...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Lenzo</div><div class="author-info-description">Viva los artistas y su amor!</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/lenzo15"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lenzo15" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:lenzo@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%89%B9%E6%80%A7"><span class="toc-number">2.</span> <span class="toc-text">特性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KCP%E9%A6%96%E9%83%A8%E6%A0%BC%E5%BC%8F"><span class="toc-number">3.</span> <span class="toc-text">KCP首部格式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BA%94%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">6.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2434505821/" title="游戏中的网络通信（八）网络同步预表现技术">游戏中的网络通信（八）网络同步预表现技术</a><time datetime="2025-09-15T14:52:15.000Z" title="发表于 2025-09-15 22:52:15">2025-09-15</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/2274644961/" title="最小生成树算法">最小生成树算法</a><time datetime="2025-09-12T12:11:13.000Z" title="发表于 2025-09-12 20:11:13">2025-09-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/3306641566/" title="并查集">并查集</a><time datetime="2025-09-11T14:09:01.000Z" title="发表于 2025-09-11 22:09:01">2025-09-11</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/1154970394/" title="游戏中的网络通信（七）高性能定点数实现">游戏中的网络通信（七）高性能定点数实现</a><time datetime="2025-09-01T11:23:26.000Z" title="发表于 2025-09-01 19:23:26">2025-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/850070085/" title="快速平方根倒数算法">快速平方根倒数算法</a><time datetime="2025-09-01T10:28:05.000Z" title="发表于 2025-09-01 18:28:05">2025-09-01</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Lenzo</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.0.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const loadMathjax = () => {
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'all',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+          renderActions: {
+            findScript: [10, doc => {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/)
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+                const text = document.createTextNode('')
+                node.parentNode.replaceChild(text, node)
+                math.start = {node: text, delim: '', n: 0}
+                math.end = {node: text, delim: '', n: 0}
+                doc.math.push(math)
+              }
+            }, '']
+          }
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.startup.document.state(0)
+      MathJax.texReset()
+      MathJax.typesetPromise()
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
